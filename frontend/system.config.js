@@ -4,8 +4,8 @@
  */
 angular
 .module('Cleep')
-.directive('systemConfigComponent', ['$rootScope', '$filter', '$timeout', '$q', 'toastService', 'systemService', 'cleepService', 'confirmService', '$mdDialog', '$location',
-function($rootScope, $filter, $timeout, $q, toast, systemService, cleepService, confirm, $mdDialog, $location) {
+.directive('systemConfigComponent', ['$rootScope', '$timeout', '$q', 'toastService', 'systemService', 'cleepService', 'confirmService', '$location',
+function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, $location) {
     var systemController = ['$scope', function($scope) {
         var self = this;
         self.config = {};
@@ -292,10 +292,8 @@ function($rootScope, $filter, $timeout, $q, toast, systemService, cleepService, 
             // load all needed stuff
             $q.all([cleepService.getEvents(), cleepService.getRenderers(), cleepService.getModulesDebug()])
                 .then(function(resps) {
-                    console.log(resps);
                     self._initRenderings(resps[0], resps[1]);
                     self.debugs = resps[2].data;
-                    console.log('====>', self.debugs);
                 });
         };
 
