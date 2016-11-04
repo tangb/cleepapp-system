@@ -3,13 +3,13 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemSystemRestartEvent(Event):
+class SystemCleepRestartEvent(Event):
     """
-    System.system.restart event
+    System.cleep.restart event
     This event is sent just before restart command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = u'system.system.restart'
+    EVENT_NAME = u'system.cleep.restart'
     EVENT_SYSTEM = True
     EVENT_PARAMS = [u'delay']
 

@@ -15,7 +15,6 @@ from cleep.libs.internals.task import Task
 from cleep.libs.internals.console import Console
 from cleep.libs.configs.fstab import Fstab
 from cleep.libs.configs.cleepconf import CleepConf
-from cleep.libs.configs.modulesjson import ModulesJson
 import cleep.libs.internals.tools as Tools
 from cleep import __version__ as VERSION
 from cleep.libs.internals.cleepbackup import CleepBackup
@@ -33,7 +32,7 @@ class System(CleepModule):
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
-    MODULE_DESCRIPTION = 'Helps updating, controlling and monitoring the device'
+    MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
     MODULE_LONGDESCRIPTION = 'Application that helps you to configure your system'
     MODULE_TAGS = ['troubleshoot', 'locale', 'events', 'monitoring', 'log', 'renderer', 'driver']
     MODULE_COUNTRY = ''
@@ -46,15 +45,13 @@ class System(CleepModule):
 
     DEFAULT_CONFIG = {
         'monitoring': False,
-        'device_uuid': str(uuid.uuid4()),
         'ssl': False,
         'auth': False,
         'rpcport': 80,
-        'eventsnotrendered': [],
+        'eventsnotrenderable': [],
         'crashreport': True,
         'cleepbackupdelay': 15,
         'needreboot': False,
-        'latestversion': None,
     }
 
     MONITORING_CPU_DELAY = 60.0 #1 minute
@@ -65,8 +62,7 @@ class System(CleepModule):
     THRESHOLD_DISK_SYSTEM = 80.0
     THRESHOLD_DISK_EXTERNAL = 90.0
 
-    CLEEP_GITHUB_OWNER = 'tangb'
-    CLEEP_GITHUB_REPO = 'cleep'
+    EVENT_SEPARATOR = '__'
 
     def __init__(self, bootstrap, debug_enabled):
         """
@@ -79,6 +75,7 @@ class System(CleepModule):
         CleepModule.__init__(self, bootstrap, debug_enabled)
 
         # members
+        self.bootstrap = bootstrap
         self.events_broker = bootstrap['events_broker']
         self.log_file = bootstrap['log_file']
         self.__monitor_cpu_uuid = None
@@ -88,7 +85,6 @@ class System(CleepModule):
         self.__monitoring_disks_task = None
         self.__process = None
         self.__need_restart = False
-        self.modules_json = ModulesJson(self.cleep_filesystem)
         self.__updating_modules = []
         self.__modules = {}
         self.__cleep_update = {
@@ -106,83 +102,82 @@ class System(CleepModule):
         self.drivers = bootstrap['drivers']
 
         # events
-        self.system_system_halt = self._get_event('system.system.halt')
-        self.system_system_reboot = self._get_event('system.system.reboot')
-        self.system_system_restart = self._get_event('system.system.restart')
-        self.system_need_restart = self._get_event('system.system.needrestart')
-        self.system_monitoring_cpu = self._get_event('system.monitoring.cp')
-        self.system_monitoring_memory = self._get_event('system.monitoring.memory')
-        self.system_alert_memory = self._get_event('system.alert.memory')
-        self.system_alert_disk = self._get_event('system.alert.disk')
-        # self.system_module_install = self._get_event('system.module.install')
-        # self.system_module_uninstall = self._get_event('system.module.uninstall')
-        # self.system_module_update = self._get_event('system.module.update')
-        # self.system_cleep_update = self._get_event('system.cleep.update')
-        self.system_driver_install = self._get_event('system.driver.install')
-        self.system_driver_uninstall = self._get_event('system.driver.uninstall')
+        self.device_halt_event = self._get_event('system.device.halt')
+        self.device_reboot_event = self._get_event('system.device.reboot')
+        self.cleep_restart_event = self._get_event('system.cleep.restart')
+        self.cleep_need_restart_event = self._get_event('system.cleep.needrestart')
+        self.monitoring_cpu_event = self._get_event('system.monitoring.cpu')
+        self.monitoring_memory_event = self._get_event('system.monitoring.memory')
+        self.alert_memory_event = self._get_event('system.alert.memory')
+        self.driver_install_event = self._get_event('system.driver.install')
+        self.driver_uninstall_event = self._get_event('system.driver.uninstall')
 
     def _configure(self):
         """
         Configure module
         """
+        # configure crash report
+        self._configure_crash_report(self._get_config_field('crashreport'))
+
         # set members
         self.cleep_backup_delay = self._get_config_field('cleepbackupdelay')
-
-        # configure crash report
-        self.__configure_crash_report(self._get_config_field('crashreport'))
 
         # init first cpu percent for current process
         self.__process = psutil.Process(os.getpid())
         self.__process.cpu_percent()
 
-        # add devices if they are not already added
-        if self._get_device_count() < 3:
-            self.logger.debug('Add default devices (device count=%d)' % self._get_device_count())
-
-            # add fake monitor device (used to have a device on dashboard)
-            monitor = {
-                'type': 'monitor',
-                'name': 'System monitor'
-            }
-            self._add_device(monitor)
-
-            # add monitor cpu device (used to save cpu data into database and has no widget)
-            monitor = {
-                'type': 'monitorcp',
-                'name': 'Cpu monitor'
-            }
-            self._add_device(monitor)
-
-            # add monitor memory device (used to save cpu data into database and has no widget)
-            monitor = {
-                'type': 'monitormemory',
-                'name': 'Memory monitor'
-            }
-            self._add_device(monitor)
-
         # store device uuids for events
         devices = self.get_module_devices()
+        monitor_uuid = None
         for device_uuid in devices:
-            if devices[device_uuid]['type'] == 'monitorcp':
+            if devices[device_uuid]['type'] == 'monitorcpu':
                 self.__monitor_cpu_uuid = device_uuid
             elif devices[device_uuid]['type'] == 'monitormemory':
                 self.__monitor_memory_uuid = device_uuid
+            elif devices[device_uuid]['type'] == 'monitor':
+                monitor_uuid = device_uuid
+
+        # create missing devices
+        if not monitor_uuid:
+            # add fake monitor device (used to have a device on dashboard)
+            self.logger.info('Create missing "monitor" device')
+            self._add_device({
+                'type': 'monitor',
+                'name': 'System monitor'
+            })
+        if not self.__monitor_cpu_uuid:
+            # add monitor cpu device (used to save cpu data into database and has no widget)
+            self.logger.info('Create missing "monitorcpu" device')
+            self._add_device({
+                'type': 'monitorcpu',
+                'name': 'Cpu monitor'
+            })
+        if not self.__monitor_memory_uuid:
+            # add monitor memory device (used to save cpu data into database and has no widget)
+            self.logger.info('Create missing "monitormemory" device')
+            self._add_device({
+                'type': 'monitormemory',
+                'name': 'Memory monitor'
+            })
+
+        # configure not renderable events
+        self._set_not_renderable_events()
 
     def _on_start(self):
         """
         Application started
         """
         # launch monitoring thread
-        self.__start_monitoring_threads()
+        self.__start_monitoring_tasks()
 
-    def _custom_stop(self):
+    def _on_stop(self):
         """
-        Stop module
+        Application stop
         """
         # stop monitoring task
-        self.__stop_monitoring_threads()
+        self.__stop_monitoring_tasks()
 
-    def __configure_crash_report(self, enable):
+    def _configure_crash_report(self, enable):
         """
         Configure crash report
 
@@ -207,24 +202,18 @@ class System(CleepModule):
         """
         config = self._get_config()
 
-        out = {}
-        out['monitoring'] = self.get_monitoring()
-        out['uptime'] = self.get_uptime()
-        out['needrestart'] = self.__need_restart
-        out['needreboot'] = config['needreboot']
-        out['crashreport'] = config['crashreport']
-        out['version'] = VERSION
-        out['eventsnotrendered'] = self.get_events_not_rendered()
-        out['debug'] = {
-            'system': self.cleep_conf.is_system_debugged(),
-            'trace': self.cleep_conf.is_trace_enabled()
-        }
-        out['cleepbackupdelay'] = self.cleep_backup_delay
-        out['latestversion'] = config['latestversion']
-        # out['ssl'] = TODO
-        # out['rpcport'] = TODO
+        # add volatile infos
+        config.update({
+            'needrestart': self.__need_restart,
+            'version': VERSION,
+            'eventsnotrenderable': self.get_not_renderable_events(),
+            'debug': {
+                'core': self.cleep_conf.is_core_debugged(),
+                'trace': self.cleep_conf.is_trace_enabled()
+            },
+        })
 
-        return out
+        return config
 
     def get_module_devices(self):
         """
@@ -237,11 +226,11 @@ class System(CleepModule):
 
         for device_uuid in devices:
             if devices[device_uuid]['type'] == 'monitor':
-                data = {}
-                data['uptime'] = self.get_uptime()
-                data['cp'] = self.get_cpu_usage()
-                data['memory'] = self.get_memory_usage()
-                devices[device_uuid].update(data)
+                devices[device_uuid].update({
+                    'uptime': self.get_uptime(),
+                    'cpu': self.get_cpu_usage(),
+                    'memory': self.get_memory_usage(),
+                })
 
         return devices
 
@@ -269,11 +258,13 @@ class System(CleepModule):
         """
         Set monitoring flag
 
-        Params:
+        Args:
             monitoring (bool): monitoring flag
         """
         if monitoring is None:
-            raise MissingParameter('Monitoring parameter missing')
+            raise MissingParameter('Parameter "monitoring" is missing')
+        if not isinstance(monitoring, bool) :
+            raise InvalidParameter('Parameter "monitoring" is invalid')
 
         if not self._set_config_field('monitoring', monitoring):
             raise CommandError('Unable to save configuration')
@@ -283,19 +274,19 @@ class System(CleepModule):
         Return monitoring configuration
 
         Returns:
-            dict: monitoring configuration
+            bool: True if monitoring is enabled
         """
         return self._get_config_field('monitoring')
 
-    def reboot_system(self, delay=5.0):
+    def reboot_device(self, delay=5.0):
         """
-        Reboot system
+        Reboot device
         """
         # backup configuration
         self.backup_cleep_config()
 
         # send event
-        self.system_system_reboot.send({
+        self.device_reboot_event.send({
             'delay': delay
         })
 
@@ -303,15 +294,15 @@ class System(CleepModule):
         console = Console()
         console.command_delayed('reboot', delay)
 
-    def halt_system(self, delay=5.0):
+    def halt_device(self, delay=5.0):
         """
-        Halt system
+        Halt device
         """
         # backup configuration
         self.backup_cleep_config()
 
         # send event
-        self.system_system_halt.send({
+        self.device_halt_event.send({
             'delay': delay
         })
 
@@ -319,7 +310,7 @@ class System(CleepModule):
         console = Console()
         console.command_delayed('halt', delay)
 
-    def restart(self, delay=3.0):
+    def restart_cleep(self, delay=3.0):
         """
         Restart Cleep
         """
@@ -327,7 +318,7 @@ class System(CleepModule):
         self.backup_cleep_config()
 
         # send event
-        self.system_system_restart.send({
+        self.cleep_restart_event.send({
             'delay': delay
         })
 
@@ -365,7 +356,7 @@ class System(CleepModule):
 
     def get_cpu_usage(self):
         """
-        Return system cpu usage
+        Return cpu usage for cleep process and system
 
         Returns:
             dict: cpu usage::
@@ -406,18 +397,18 @@ class System(CleepModule):
             'uptimehr': Tools.hr_uptime(uptime)
         }
 
-    def __start_monitoring_threads(self):
+    def __start_monitoring_tasks(self):
         """
         Start monitoring threads
         """
-        self.__monitoring_cpu_task = Task(self.MONITORING_CPU_DELAY, self.__monitoring_cpu_thread, self.logger)
+        self.__monitoring_cpu_task = Task(self.MONITORING_CPU_DELAY, self._monitoring_cpu_task, self.logger)
         self.__monitoring_cpu_task.start()
-        self.__monitoring_memory_task = Task(self.MONITORING_MEMORY_DELAY, self.__monitoring_memory_thread, self.logger)
+        self.__monitoring_memory_task = Task(self.MONITORING_MEMORY_DELAY, self._monitoring_memory_task, self.logger)
         self.__monitoring_memory_task.start()
-        self.__monitoring_disks_task = Task(self.MONITORING_DISKS_DELAY, self.__monitoring_disks_thread, self.logger)
-        self.__monitoring_disks_task.start()
+        # self.__monitoring_disks_task = Task(self.MONITORING_DISKS_DELAY, self._monitoring_disks_task, self.logger)
+        # self.__monitoring_disks_task.start()
 
-    def __stop_monitoring_threads(self):
+    def __stop_monitoring_tasks(self):
         """
         Stop monitoring threads
         """
@@ -425,134 +416,133 @@ class System(CleepModule):
             self.__monitoring_cpu_task.stop()
         if self.__monitoring_memory_task is not None:
             self.__monitoring_memory_task.stop()
-        if self.__monitoring_disks_task is not None:
-            self.__monitoring_disks_task.stop()
+        # if self.__monitoring_disks_task is not None:
+        #     self.__monitoring_disks_task.stop()
 
-    def __monitoring_cpu_thread(self):
+    def _monitoring_cpu_task(self):
         """
         Read cpu usage
         """
-        config = self._get_config()
-
         # send event if monitoring activated
-        if config['monitoring']:
-            self.system_monitoring_cpu.send(params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid)
+        if self._get_config_field('monitoring'):
+            self.monitoring_cpu_event.send(params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid)
 
-    def __monitoring_memory_thread(self):
+    def _monitoring_memory_task(self):
         """
         Read memory usage
         Send alert if threshold reached
         """
-        config = self._get_config()
         memory = self.get_memory_usage()
 
         # detect memory leak
         percent = (float(memory['total'])-float(memory['available']))/float(memory['total'])*100.0
         if percent >= self.THRESHOLD_MEMORY:
-            self.system_alert_memory.send(params={'percent':percent, 'threshold':self.THRESHOLD_MEMORY})
+            self.alert_memory_event.send(params={'percent':percent, 'threshold':self.THRESHOLD_MEMORY})
 
         # send event if monitoring activated
-        if config['monitoring']:
-            self.system_monitoring_memory.send(params=memory, device_id=self.__monitor_memory_uuid)
+        if self._get_config_field('monitoring'):
+            self.monitoring_memory_event.send(params=memory, device_id=self.__monitor_memory_uuid)
 
-    def __monitoring_disks_thread(self):
-        """
-        Read disks usage
-        Only used to send alert when threshold reached
-        """
-        disks = self.get_filesystem_infos()
-        for disk in disks:
-            if not disk['mounted']:
-                continue
+    # def _monitoring_disks_task(self):
+    # """
+    #    Read disks usage
+    #    Only used to send alert when threshold reached
+    #    """
+    #    disks = self.get_filesystem_infos()
+    #    for disk in disks:
+    #        if not disk['mounted']:
+    #            continue
+    #
+    #        if disk['mountpoint'] == '/' and disk['percent'] >= self.THRESHOLD_DISK_SYSTEM:
+    #            self.alert_disk_event.send(params={
+    #                'percent': disk['percent'],
+    #                'threshold': self.THRESHOLD_DISK_SYSTEM,
+    #                'mountpoint': disk['mountpoint']
+    #            })
+    #
+    #        elif disk['mountpoint'] not in ('/', '/boot') and disk['percent'] >= self.THRESHOLD_DISK_EXTERNAL:
+    #            self.alert_disk_event.send(params={
+    #                'percent': disk['percent'],
+    #                'threshold': self.THRESHOLD_DISK_EXTERNAL,
+    #                'mountpoint': disk['mountpoint']
+    #            })
 
-            if disk['mountpoint'] == '/' and disk['percent'] >= self.THRESHOLD_DISK_SYSTEM:
-                self.system_alert_disk.send(params={
-                    'percent': disk['percent'],
-                    'threshold': self.THRESHOLD_DISK_SYSTEM,
-                    'mountpoint': disk['mountpoint']
-                })
-
-            elif disk['mountpoint'] not in ('/', '/boot') and disk['percent'] >= self.THRESHOLD_DISK_EXTERNAL:
-                self.system_alert_disk.send(params={
-                    'percent': disk['percent'],
-                    'threshold': self.THRESHOLD_DISK_EXTERNAL,
-                    'mountpoint': disk['mountpoint']
-                })
-
-    def get_filesystem_infos(self):
-        """
-        Return filesystem infos (all values are in octets)
-
-        Returns:
-            list: list of devices available with some informations::
-                [
-                    {
-                        'device': <device path /dev/XXX (string)>
-                        'uuid': <device uuid like found in blkid (string)>,
-                        'system': <system partition (bool)>,
-                        'mountpoint': <mountpoint (string)>
-                        'mounted': <partition is mounted (bool)>,
-                        'mounttype': <partition type (string)>,
-                        'options': <mountpoint options (string)>,
-                        'total': <partition total space in octets (number)>,
-                        'used': <partition used space in octets (number)>,
-                        'free': <partition free space in octets (number)>,
-                        'percent': <partition used space in percentage (number)>
-                    },
-                    ...
-                ]
-        """
-        # get mounted partitions and all devices
-        fstab = Fstab(self.cleep_filesystem)
-        mounted_partitions = fstab.get_mountpoints()
-        self.logger.debug('mounted_partitions=%s' % mounted_partitions)
-        all_devices = fstab.get_all_devices()
-        self.logger.debug('all_devices=%s' % all_devices)
-
-        # build output
-        fsinfos = []
-        for device in all_devices:
-            # check if partition is mounted
-            mounted = {'mounted':False, 'mountpoint':'', 'mounttype':'-', 'options':'', 'uuid':None}
-            system = False
-            for partition in mounted_partitions:
-                if mounted_partitions[partition]['device'] == device:
-                    mounted['mounted'] = True
-                    mounted['mountpoint'] = mounted_partitions[partition]['mountpoint']
-                    mounted['device'] = mounted_partitions[partition]['device']
-                    mounted['uuid'] = mounted_partitions[partition]['uuid']
-                    mounted['mounttype'] = mounted_partitions[partition]['mounttype']
-                    mounted['options'] = mounted_partitions[partition]['options']
-                    if mounted_partitions[partition]['mountpoint'] in ('/', '/boot'):
-                        system = True
-
-            # get mounted partition usage
-            usage = {'total':0, 'used':0, 'free':0, 'percent':0.0}
-            if mounted['mounted']:
-                sdiskusage = psutil.disk_usage(mounted['mountpoint'])
-                self.logger.debug('diskusage for %s: %s' % (device, sdiskusage))
-                usage['total'] = sdiskusage.total
-                usage['used'] = sdiskusage.used
-                usage['free'] = sdiskusage.free
-                usage['percent'] = sdiskusage.percent
-
-            # fill infos
-            fsinfos.append({
-                'device': device,
-                'uuid': mounted['uuid'],
-                'system': system,
-                'mountpoint': mounted['mountpoint'],
-                'mounted': mounted['mounted'],
-                'mounttype': mounted['mounttype'],
-                'options': mounted['options'],
-                'total': usage['total'],
-                'used': usage['used'],
-                'free': usage['free'],
-                'percent': usage['percent']
-            })
-
-        self.logger.debug('Filesystem infos: %s' % fsinfos)
-        return fsinfos
+    # def get_filesystem_infos(self):
+    #    """
+    #    Return filesystem infos (all values are in octets)
+    #
+    #    Returns:
+    #        list: list of devices available with some informations::
+    #
+    #            [
+    #                {
+    #                    'device': <device path /dev/XXX (string)>
+    #                    'uuid': <device uuid like found in blkid (string)>,
+    #                    'system': <system partition (bool)>,
+    #                    'mountpoint': <mountpoint (string)>
+    #                    'mounted': <partition is mounted (bool)>,
+    #                    'mounttype': <partition type (string)>,
+    #                    'options': <mountpoint options (string)>,
+    #                    'total': <partition total space in octets (number)>,
+    #                    'used': <partition used space in octets (number)>,
+    #                    'free': <partition free space in octets (number)>,
+    #                    'percent': <partition used space in percentage (number)>
+    #                },
+    #                ...
+    #            ]
+    #
+    #    """
+    #    # get mounted partitions and all devices
+    #    fstab = Fstab(self.cleep_filesystem)
+    #    mounted_partitions = fstab.get_mountpoints()
+    #    self.logger.debug('mounted_partitions=%s' % mounted_partitions)
+    #    all_devices = fstab.get_all_devices()
+    #    self.logger.debug('all_devices=%s' % all_devices)
+    #
+    #    # build output
+    #    fsinfos = []
+    #    for device in all_devices:
+    #        # check if partition is mounted
+    #        mounted = {'mounted':False, 'mountpoint':'', 'mounttype':'-', 'options':'', 'uuid':None}
+    #        system = False
+    #        for partition in mounted_partitions:
+    #            if mounted_partitions[partition]['device'] == device:
+    #                mounted['mounted'] = True
+    #                mounted['mountpoint'] = mounted_partitions[partition]['mountpoint']
+    #                mounted['device'] = mounted_partitions[partition]['device']
+    #                mounted['uuid'] = mounted_partitions[partition]['uuid']
+    #                mounted['mounttype'] = mounted_partitions[partition]['mounttype']
+    #                mounted['options'] = mounted_partitions[partition]['options']
+    #                if mounted_partitions[partition]['mountpoint'] in ('/', '/boot'):
+    #                    system = True
+    #
+    #        # get mounted partition usage
+    #        usage = {'total':0, 'used':0, 'free':0, 'percent':0.0}
+    #        if mounted['mounted']:
+    #            sdiskusage = psutil.disk_usage(mounted['mountpoint'])
+    #            self.logger.debug('diskusage for %s: %s' % (device, sdiskusage))
+    #            usage['total'] = sdiskusage.total
+    #            usage['used'] = sdiskusage.used
+    #            usage['free'] = sdiskusage.free
+    #            usage['percent'] = sdiskusage.percent
+    #
+    #        # fill infos
+    #        fsinfos.append({
+    #            'device': device,
+    #            'uuid': mounted['uuid'],
+    #            'system': system,
+    #            'mountpoint': mounted['mountpoint'],
+    #            'mounted': mounted['mounted'],
+    #            'mounttype': mounted['mounttype'],
+    #            'options': mounted['options'],
+    #            'total': usage['total'],
+    #            'used': usage['used'],
+    #            'free': usage['free'],
+    #            'percent': usage['percent']
+    #        })
+    #
+    #    self.logger.debug('Filesystem infos: %s' % fsinfos)
+    #    return fsinfos
 
     def download_logs(self):
         """
@@ -564,31 +554,32 @@ class System(CleepModule):
         Raises:
             Exception: if error occured
         """
-        if os.path.exists(self.log_file):
-            # log file exists
+        if not os.path.exists(self.log_file):
+            # file doesn't exist, raise exception
+            raise CommandError('Logs file doesn\'t exist')
 
-            # zip it
-            file_descriptor = NamedTemporaryFile(delete=False)
-            log_filename = file_descriptor.name
-            self.logger.debug('Zipped log filename: %s' % log_filename)
-            archive = ZipFile(file_descriptor, 'w', ZIP_DEFLATED)
-            archive.write(self.log_file, 'cleep.log')
-            archive.close()
+        # log file exists, zip it
+        file_descriptor = NamedTemporaryFile(delete=False)
+        log_filename = file_descriptor.name
+        self.logger.debug('Zipped log filename: %s' % log_filename)
+        archive = ZipFile(file_descriptor, 'w', ZIP_DEFLATED)
+        archive.write(self.log_file, 'cleep.log')
+        archive.close()
 
-            now = datetime.now()
-            filename = 'cleep_%d%02d%02d_%02d%02d%02d.zip' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+        now = datetime.now()
+        filename = 'cleep_%d%02d%02d_%02d%02d%02d.zip' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
-            return {
-                'filepath': log_filename,
-                'filename': filename
-            }
-
-        # file doesn't exist, raise exception
-        raise Exception('Logs file doesn\'t exist')
+        return {
+            'filepath': log_filename,
+            'filename': filename
+        }
 
     def get_logs(self):
         """
         Return logs file content
+
+        Returns:
+            list: list of lines from log file
         """
         lines = []
         if os.path.exists(self.log_file):
@@ -617,6 +608,8 @@ class System(CleepModule):
         """
         if trace is None:
             raise MissingParameter('Parameter "trace" is missing')
+        if not isinstance(trace, bool):
+            raise InvalidParameter('Parameter "trace" is invalid')
 
         # save log level in conf file
         if trace:
@@ -626,112 +619,163 @@ class System(CleepModule):
 
         # send event cleep needs to be restarted
         self.__need_restart = True
-        self.system_need_restart.send()
+        self.cleep_need_restart_event.send()
 
-    def set_system_debug(self, debug):
+    def set_core_debug(self, debug):
         """
-        Set debug on all system modules
+        Set debug on all core modules
 
         Args:
             debug (bool): enable debug
         """
         if debug is None:
             raise MissingParameter('Parameter "debug" is missing')
+        if not isinstance(debug, bool):
+            raise InvalidParameter('Parameter "debug" is invalid')
 
         if debug:
-            self.events_broker.logger.setLevel(logging.DEBUG)
-            self.cleep_filesystem.logger.setLevel(logging.DEBUG)
+            self.bootstrap['message_bus'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['events_broker'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['cleep_filesystem'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['formatters_broker'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['crash_report'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['critical_resources'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['drivers'].logger.setLevel(logging.DEBUG)
 
-            self.cleep_conf.enable_system_debug()
+            self.cleep_conf.enable_core_debug()
         else:
-            self.events_broker.logger.setLevel(logging.INFO)
-            self.cleep_filesystem.logger.setLevel(logging.INFO)
+            self.bootstrap['message_bus'].logger.setLevel(logging.INFO)
+            self.bootstrap['events_broker'].logger.setLevel(logging.INFO)
+            self.bootstrap['cleep_filesystem'].logger.setLevel(logging.INFO)
+            self.bootstrap['formatters_broker'].logger.setLevel(logging.INFO)
+            self.bootstrap['crash_report'].logger.setLevel(logging.INFO)
+            self.bootstrap['critical_resources'].logger.setLevel(logging.INFO)
+            self.bootstrap['drivers'].logger.setLevel(logging.INFO)
 
-            self.cleep_conf.disable_system_debug()
+            self.cleep_conf.disable_core_debug()
 
-    def set_module_debug(self, module, debug):
+    def set_module_debug(self, module_name, debug):
         """
         Set module debug flag
 
         Args:
-            module (string): module name
+            module_name (string): module name
             debug (bool): enable debug
         """
-        if module is None or len(module) == 0:
-            raise MissingParameter('Parameter "module" is missing')
+        if not module_name:
+            raise MissingParameter('Parameter "module_name" is missing')
+        if not isinstance(module_name, str):
+            raise InvalidParameter('Parameter "module_name" is invalid')
         if debug is None:
             raise MissingParameter('Parameter "debug" is missing')
+        if not isinstance(debug, bool):
+            raise InvalidParameter('Parameter "debug" is invalid')
 
         # save log level in conf file
         if debug:
-            self.cleep_conf.enable_module_debug(module)
+            self.cleep_conf.enable_module_debug(module_name)
         else:
-            self.cleep_conf.disable_module_debug(module)
+            self.cleep_conf.disable_module_debug(module_name)
 
         # set debug on module
-        if module == 'rpc':
+        if module_name == 'rpc':
             # specific command for rpcserver
             resp = self.send_command('set_rpc_debug', 'inventory', {'debug':debug})
         else:
-            resp = self.send_command('set_debug', module, {'debug':debug})
-
-        # process command response
+            resp = self.send_command('set_debug', module_name, {'debug':debug})
         if not resp:
             self.logger.error('No response')
-            raise CommandError('No response from "%s" module' % module)
+            raise CommandError('No response from "%s" module' % module_name)
         if resp['error']:
-            self.logger.error('Unable to set debug on module %s: %s' % (module, resp['message']))
+            self.logger.error('Unable to set debug on module %s: %s' % (module_name, resp['message']))
             raise CommandError('Update debug failed')
 
-    def __update_events_not_rendered_in_factory(self):
+    def _set_not_renderable_events(self):
         """
-        Update events factory with list of events to not render
+        Set renderable flag on all events that are configured as not renderable
         """
-        self.events_broker.update_events_not_rendered(self.get_events_not_rendered())
+        events_to_delete = []
+        for event_not_renderable in self.get_not_renderable_events():
+            try:
+                self.logger.debug('Disable event "%s" rendering for "%s"' % (
+                    event_not_renderable['event'],
+                    event_not_renderable['renderer'],
+                ))
+                event = self.events_broker.get_event_instance(event_not_renderable['event'])
+                event.set_renderable(event_not_renderable['renderer'], False)
+            except:
+                # event does not exists anymore, delete it
+                key = '%s%s%s' % (
+                    event_not_renderable['renderer'],
+                    self.EVENT_SEPARATOR,
+                    event_not_renderable['event']
+                )
+                if key not in events_to_delete:
+                    events_to_delete.append(key)
 
-    def set_event_not_rendered(self, renderer, event, disabled):
+        # remove old not renderable events
+        not_renderable_events = self._get_config_field('eventsnotrenderable')
+        for event in events_to_delete:
+            not_renderable_events.remove(event)
+        self._set_config_field('eventsnotrenderable', not_renderable_events)
+
+    def set_renderable_event(self, renderer_name, event_name, renderable):
         """
-        Set event not rendered
+        Set event renderable status
 
         Args:
-            renderer (string): renderer name
-            event (string): event name
-            value (bool): enable/disable value
+            renderer_name (string): renderer name
+            event_name (string): event name
+            renderable (bool): True to allow event rendering for renderer, False otherwise
 
-        Return:
-            list: list of events not rendered
+        Returns:
+            list: list of events not renderable
         """
-        if renderer is None or len(renderer) == 0:
-            raise MissingParameter('Renderer parameter is missing')
-        if event is None or len(event) == 0:
-            raise MissingParameter('Event parameter is missing')
-        if disabled is None:
-            raise MissingParameter('Disabled parameter is missing')
-        if not isinstance(disabled, bool):
-            raise InvalidParameter('Disabled parameter is invalid, must be bool')
+        if not renderer_name:
+            raise MissingParameter('Parameter "renderer_name" is missing')
+        if not isinstance(renderer_name, str):
+            raise InvalidParameter('Parameter "renderer_name" is invalid')
+        if not event_name:
+            raise MissingParameter('Parameter "event_name" is missing')
+        if not isinstance(event_name, str):
+            raise InvalidParameter('Parameter "event_name" is invalid')
+        if renderable is None:
+            raise MissingParameter('Parameter "renderable" is missing')
+        if not isinstance(renderable, bool):
+            raise InvalidParameter('Parameter "renderable" is invalid')
 
-        events_not_rendered = self._get_config_field('eventsnotrendered')
-        key = '%s__%s' % (renderer, event)
-        if key in events_not_rendered and not disabled:
-            # enable renderer event
-            events_not_rendered.remove(key)
-        else:
-            # disable renderer event
-            events_not_rendered.append(key)
-        if not self._set_config_field('eventsnotrendered', events_not_rendered):
+        # configure event
+        try:
+            event_instance = self.events_broker.get_event_instance(event_name)
+        except:
+            self.logger.error('Trying to disable event "%s" rendering while it does not exist' % event_name)
+            raise CommandError('Unable to update event rendering status')
+
+        # update config
+        events_not_renderable = self._get_config_field('eventsnotrenderable')
+        key = '%s%s%s' % (renderer_name, self.EVENT_SEPARATOR, event_name)
+
+        if key in events_not_renderable and renderable:
+            # enable event rendering
+            events_not_renderable.remove(key)
+        elif key not in events_not_renderable and not renderable:
+            # disable event rendering
+            events_not_renderable.append(key)
+        if not self._set_config_field('eventsnotrenderable', events_not_renderable):
             raise CommandError('Unable to save configuration')
 
-        # configure events factory with new events to not render
-        self.__update_events_not_rendered_in_factory()
+        # set event renderable status
+        event_instance.set_renderable(renderer_name, renderable)
 
-        return self.get_events_not_rendered()
+        return self.get_not_renderable_events()
 
-    def get_events_not_rendered(self):
+    def get_not_renderable_events(self):
         """
-        Return list of not rendered events
+        Return list of not renderable events
 
-        Return:
+        Returns:
             list: list of events to not render::
+
                 [
                     {
                         event (string): event name,
@@ -739,19 +783,18 @@ class System(CleepModule):
                     },
                     ...
                 ]
-        """
-        config = self._get_config()
 
+        """
         # split items to get renderer and event splitted
-        events_not_rendered = []
-        for item in config['eventsnotrendered']:
-            (renderer, event) = item.split('__')
-            events_not_rendered.append({
+        events_not_renderable = []
+        for item in self._get_config_field('eventsnotrenderable'):
+            (renderer, event) = item.split(self.EVENT_SEPARATOR)
+            events_not_renderable.append({
                 'renderer': renderer,
                 'event': event
             })
 
-        return events_not_rendered
+        return events_not_renderable
 
     def set_crash_report(self, enable):
         """
@@ -760,23 +803,20 @@ class System(CleepModule):
         Args:
             enable (bool): True to enable crash report
 
-        Returns:
-            bool: True if crash report status updated
-
         Raises:
             CommandError if error occured
         """
         if enable is None:
             raise MissingParameter('Parameter "enable" is missing')
+        if not isinstance(enable, bool):
+            raise InvalidParameter('Parameter "enable" is invalid')
 
         # save config
         if not self._set_config_field('crashreport', enable):
             raise CommandError('Unable to save crash report value')
 
         # configure crash report
-        self.__configure_crash_report(enable)
-
-        return True
+        self._configure_crash_report(enable)
 
     def backup_cleep_config(self):
         """
@@ -793,19 +833,18 @@ class System(CleepModule):
         Set Cleep backup delay
 
         Args:
-            minute (int): delay in minutes (5..60)
+            delay (int): delay in minutes (5..60)
         """
         # check params
         if delay is None:
-            raise MissingParameter('Parameter "delay" must be specified')
-        if delay < 5 or delay > 60:
-            raise MissingParameter('Parameter "delay" must be 0..60')
+            raise MissingParameter('Parameter "delay" is missing')
+        if type(delay) is not int:
+            raise InvalidParameter('Parameter "delay" is invalid')
+        if delay < 5 or delay > 120:
+            raise InvalidParameter('Parameter "delay" must be 5..120')
 
-        res = self._set_config_field('cleepbackupdelay', delay)
-        if res:
+        if self._set_config_field('cleepbackupdelay', delay):
             self.cleep_backup_delay = delay
-
-        return res
 
     def _install_driver_terminated(self, driver_type, driver_name, success, message):
         """
@@ -827,11 +866,11 @@ class System(CleepModule):
         self.logger.debug('Driver install terminated: %s' % data)
 
         # send event
-        self.system_driver_install.send(data)
+        self.driver_install_event.send(data)
 
         # reboot device if install succeed
         if success:
-            self.reboot_system()
+            self.reboot_device()
 
     def install_driver(self, driver_type, driver_name, force=False):
         """
@@ -864,7 +903,7 @@ class System(CleepModule):
 
         # launch installation (non blocking) and send event
         driver.install(self._install_driver_terminated, logger=self.logger)
-        self.system_driver_install.send({
+        self.driver_install_event.send({
             'drivertype': driver_type,
             'drivername': driver_name,
             'installing': True,
@@ -894,11 +933,11 @@ class System(CleepModule):
         self.logger.debug('Uninstall driver terminated: %s' % data)
 
         # send event
-        self.system_driver_uninstall.send(data)
+        self.driver_uninstall_event.send(data)
 
         # reboot device if uninstall succeed
         if success:
-            self.reboot_system()
+            self.reboot_device()
 
     def uninstall_driver(self, driver_type, driver_name):
         """
@@ -920,7 +959,7 @@ class System(CleepModule):
         if driver_name is None or len(driver_name) == 0:
             raise MissingParameter('Parameter "driver_name" is missing')
 
-        # get driver
+        # get driver instance
         driver = self.drivers.get_driver(driver_type, driver_name)
         if not driver:
             raise InvalidParameter('No driver found for specified parameters')
@@ -930,7 +969,7 @@ class System(CleepModule):
 
         # launch uninstallation (non blocking) and send event
         driver.uninstall(self._uninstall_driver_terminated, logger=self.logger)
-        self.system_driver_uninstall.send({
+        self.driver_uninstall_event.send({
             'drivertype': driver_type,
             'drivername': driver_name,
             'uninstalling': True,

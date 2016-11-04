@@ -3,15 +3,14 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemSystemRebootEvent(Event):
+class SystemCleepNeedrestartEvent(Event):
     """
-    System.system.reboot event
-    This event is sent just before reboot command is launched. It allows modules to perform something before.
+    System.cleep.needrestart event
     """
 
-    EVENT_NAME = u'system.system.reboot'
+    EVENT_NAME = u'system.cleep.needrestart'
     EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'delay']
+    EVENT_PARAMS = []
 
     def __init__(self, bus, formatters_broker):
         """ 

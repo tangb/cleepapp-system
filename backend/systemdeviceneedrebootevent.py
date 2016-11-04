@@ -3,12 +3,12 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemSystemNeedrebootEvent(Event):
+class SystemDeviceNeedrebootEvent(Event):
     """
-    System.system.needreboot event
+    System.device.needreboot event
     """
 
-    EVENT_NAME = u'system.system.needreboot'
+    EVENT_NAME = u'system.device.needreboot'
     EVENT_SYSTEM = True
     EVENT_PARAMS = []
 

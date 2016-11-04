@@ -3,13 +3,13 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemSystemHaltEvent(Event):
+class SystemDeviceRebootEvent(Event):
     """
-    System.system.halt event
-    This event is sent just before halt command is launched. It allows modules to perform something before.
+    System.device.reboot event
+    This event is sent just before reboot command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = u'system.system.halt'
+    EVENT_NAME = u'system.device.reboot'
     EVENT_SYSTEM = True
     EVENT_PARAMS = [u'delay']
 

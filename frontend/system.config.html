@@ -2,87 +2,12 @@
 
     <!-- navigation tabs -->
     <md-nav-bar md-selected-nav-item="systemCtl.tabIndex" nav-bar-aria-label="System tabs">
-        <md-nav-item md-nav-click="goto('update')" name="update">Update</md-nav-item>
+        <md-nav-item md-nav-click="goto('drivers')" name="drivers">Drivers</md-nav-item>
         <md-nav-item md-nav-click="goto('backup')" name="backup">Backup</md-nav-item>
         <md-nav-item md-nav-click="goto('renderings')" name="renderings">Renderings</md-nav-item>
-        <md-nav-item md-nav-click="goto('drivers')" name="drivers">Drivers</md-nav-item>
         <md-nav-item md-nav-click="goto('advanced')" name="advanced">Advanced</md-nav-item>
         <md-nav-item md-nav-click="goto('troubleshoot')" name="troubleshoot">Troubleshoot</md-nav-item>
     </md-nav-bar>
-
-    <!-- update -->
-    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='update'">
-        <md-list ng-cloak>
-
-            <!-- options -->
-            <md-subheader class="md-no-sticky">Options</md-subheader>
-            <md-list-item>
-                <p>To enjoy new features and bug fixes automatically, enable automatic update</p>
-            </md-list-item>
-            <md-list-item ng-click="systemCtl.setAutomaticUpdate('cleep')">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Enable automatic device application updates</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.cleepUpdateEnabled" ng-change="systemCtl.setAutomaticUpdate()"></md-checkbox>
-            </md-list-item>
-            <md-list-item ng-click="systemCtl.setAutomaticUpdate('modules')">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Enable automatic modules updates</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.modulesUpdateEnabled" ng-change="systemCtl.setAutomaticUpdate()"></md-checkbox>
-            </md-list-item>
-
-            <!-- cleep -->
-            <md-subheader class="md-no-sticky">Cleep updates</md-subheader>
-            <md-list-item>
-                <p>Cleep version {{systemCtl.version}} is installed (last check {{systemCtl.lastCheckCleep | hrDatetime}})</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.checkCleepUpdates()" ng-disabled="systemCtl.systemService.cleepinstallStatus!==0 || systemCtl.cleepUpdatePending">Check updates</md-button>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.cleepUpdateAvailable && systemCtl.systemService.cleepinstallStatus===0 && !systemCtl.cleepUpdatePending">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>New Cleep version available (v{{systemCtl.cleepUpdateAvailable}})</p>
-                <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.showUpdateDialog()">Update Cleep</md-button>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.cleepUpdatePending">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Cleep updated, please reboot</p>
-                <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.reboot()">Reboot</md-button>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.lastCleepUpdate.time!==0 && systemCtl.systemService.cleepinstallStatus===0">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Last update installed at {{systemCtl.lastCleepUpdate.time | hrDatetime}}</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.showLogsDialog()">Show logs</md-button>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.systemService.cleepinstallStatus!==0">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===1">Installing update...</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===2">Installation completed successfully</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===3">Installation failed (internal error)</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===4">Download failed</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===5">Download failed (file is corrupted)</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===6">Installation failed (decompression error)</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===7">Installation failed (pre-instal script failed)</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===8">Installation failed (package install failed)</span>
-                    <span ng-if="systemCtl.systemService.cleepinstallStatus===9">Installation failed (post-install failed)</span>
-                </p>
-                <div ng-if="systemCtl.systemService.cleepinstallStatus===1" class="md-secondary">
-                    <md-progress-linear md-mode="indeterminate" class="md-accent" style="min-width:250px;"></md-progress-linear>
-                </div>
-            </md-list-item>
-
-            <!-- applications -->
-            <md-subheader class="md-no-sticky">Applications updates</md-subheader>
-            <md-list-item>
-                <p>Check for new apps versions (last check {{systemCtl.lastCheckModules | hrDatetime}})</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.checkModulesUpdates()">Check updates</md-button>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.modulesUpdateAvailable && !systemCtl.modulesUpdateEnabled">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Some application updates are available</p>
-                <md-button class="md-secondary md-raised md-primary" href="#!modules">Go to apps list</md-button>
-            </md-list-item>
-
-        </md-list>
-    </div>
 
     <!-- backup -->
     <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='backup'">
@@ -203,18 +128,18 @@
 
             <!-- monitoring -->
             <md-subheader class="md-no-sticky">Monitoring</md-subheader>
-            <md-list-item ng-click="systemCtl.updateMonitoring(false)">
+            <md-list-item>
                 <md-icon md-svg-icon="chevron-right"></md-icon>
                 <p>Enable monitoring allows you to follow cpu and memory consumption of device</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.monitoring" ng-click="systemCtl.updateMonitoring(true)" aria-label="Monitoring option"></md-checkbox>
+                <md-checkbox class="md-secondary" ng-model="systemCtl.config.monitoring" ng-change="systemCtl.updateMonitoring(true)" aria-label="Monitoring option"></md-checkbox>
             </md-list-item>
 
             <!-- crash report -->
             <md-subheader class="md-no-sticky">Crash report</md-subheader>
-            <md-list-item ng-click="systemCtl.updateCrashReport(false)">
+            <md-list-item>
                 <md-icon md-svg-icon="chevron-right"></md-icon>
                 <p>If you enable crash report, it will help us to improve application reliability</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.crashReport" aria-label="Crash report" ng-click="systemCtl.updateCrashReport(true)"></md-checkbox>
+                <md-checkbox class="md-secondary" ng-model="systemCtl.config.crashReport" aria-label="Crash report" ng-change="systemCtl.updateCrashReport(true)"></md-checkbox>
             </md-list-item>
 
         </md-list>

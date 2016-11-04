@@ -2,7 +2,10 @@
  * Monitor widget directive
  * Display system monitor dashboard widget
  */
-var widgetMonitorDirective = function(cleepService, $mdDialog, systemService, $q) {
+angular
+.module('Cleep')
+.directive('monitorWidget', ['cleepService', '$mdDialog', 'systemService', '$q',
+function(cleepService, $mdDialog, systemService, $q) {
 
     var widgetMonitorController = ['$scope', function($scope) {
         var self = this;
@@ -171,8 +174,4 @@ var widgetMonitorDirective = function(cleepService, $mdDialog, systemService, $q
         controllerAs: 'widgetCtl',
         link: widgetMonitorLink
     };
-};
-
-var Cleep = angular.module('Cleep');
-Cleep.directive('widgetMonitorDirective', ['cleepService', '$mdDialog', 'systemService', '$q', widgetMonitorDirective]);
-
+}]);
