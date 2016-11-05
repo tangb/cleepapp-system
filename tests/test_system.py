@@ -5,7 +5,7 @@ import logging
 import sys
 sys.path.append('../')
 from backend.system import System
-from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized
+from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo
 from cleep.libs.tests import session
 from mock import Mock, patch, MagicMock
 
@@ -35,7 +35,7 @@ class TestSystem(unittest.TestCase):
 
     def setUp(self):
         self.session = session.TestSession()
-        logging.basicConfig(level=logging.DEBUG, format=u'%(asctime)s %(name)s:%(lineno)d %(levelname)s : %(message)s')
+        logging.basicConfig(level=logging.FATAL, format=u'%(asctime)s %(name)s:%(lineno)d %(levelname)s : %(message)s')
 
     def tearDown(self):
         mock_psutil.reset_mock()
@@ -610,7 +610,7 @@ class TestSystem(unittest.TestCase):
         self.init_session()
         mock_event = Mock()
         self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
-        self.module._get_config_field = Mock(return_value=[])
+        self.module._get_config_field = Mock(return_value=['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
         self.module._set_config_field = Mock(return_value=True)
         
         result = self.module.set_renderable_event('renderer1', 'event1', True)
@@ -625,7 +625,7 @@ class TestSystem(unittest.TestCase):
         self.init_session()
         mock_event = Mock()
         self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
-        self.module._get_config_field = Mock(return_value=['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
+        self.module._get_config_field = Mock(return_value=[])
         self.module._set_config_field = Mock(return_value=True)
         
         result = self.module.set_renderable_event('renderer1', 'event1', False)
@@ -793,6 +793,184 @@ class TestSystem(unittest.TestCase):
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_cleep_backup_delay(121)
         self.assertEqual(str(cm.exception), 'Parameter "delay" must be 5..120')
+
+    def test_install_driver_terminated_success(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+
+        self.module._install_driver_terminated('dummy', 'dummy-driver', True, '')
+
+        self.assertTrue(self.session.event_called_with('system.driver.install', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'installing': False,
+            'success': True,
+            'message': '',
+        }))
+        self.module.reboot_device.assert_called()
+
+    def test_install_driver_terminated_failure(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+
+        self.module._install_driver_terminated('dummy', 'dummy-driver', False, 'error occured')
+
+        self.assertTrue(self.session.event_called_with('system.driver.install', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'installing': False,
+            'success': False,
+            'message': 'error occured',
+        }))
+        self.assertFalse(self.module.reboot_device.called)
+
+    def test_install_driver(self):
+        self.init_session()
+        driver = Mock()
+        driver.is_installed = Mock(return_value=False)
+        self.module.drivers.get_driver = Mock(return_value=driver)
+
+        self.module.install_driver('dummy', 'dummy-driver')
+
+        driver.install.assert_called()
+        self.session.event_called_with('system.driver.install', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'installing': True,
+            'success': None,
+            'message': None,
+        })
+
+    def test_install_driver_already_installed(self):
+        self.init_session()
+        driver = Mock()
+        driver.is_installed = Mock(return_value=True)
+        self.module.drivers.get_driver = Mock(return_value=driver)
+
+        with self.assertRaises(CommandInfo) as cm:
+            self.module.install_driver('dummy', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Driver is already installed')
+
+    def test_install_driver_exception(self):
+        self.init_session()
+        self.module.drivers.get_driver = Mock(return_value=None)
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.install_driver('dummy', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'No driver found for specified parameters')
+
+        with self.assertRaises(MissingParameter) as cm:
+            self.module.install_driver(None, 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is missing')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.install_driver(123, 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.install_driver('', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+
+        with self.assertRaises(MissingParameter) as cm:
+            self.module.install_driver('dummy', None)
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is missing')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.install_driver('dummy', 123)
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.install_driver('dummy', '')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+
+    def test_uninstall_driver_terminated_success(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+
+        self.module._uninstall_driver_terminated('dummy', 'dummy-driver', True, '')
+
+        self.assertTrue(self.session.event_called_with('system.driver.uninstall', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'uninstalling': False,
+            'success': True,
+            'message': '',
+        }))
+        self.module.reboot_device.assert_called()
+
+    def test_uninstall_driver_terminated_failure(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+
+        self.module._uninstall_driver_terminated('dummy', 'dummy-driver', False, 'error occured')
+
+        self.assertTrue(self.session.event_called_with('system.driver.uninstall', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'uninstalling': False,
+            'success': False,
+            'message': 'error occured',
+        }))
+        self.assertFalse(self.module.reboot_device.called)
+
+    def test_uninstall_driver(self):
+        self.init_session()
+        driver = Mock()
+        driver.is_installed = Mock(return_value=True)
+        self.module.drivers.get_driver = Mock(return_value=driver)
+
+        self.module.uninstall_driver('dummy', 'dummy-driver')
+
+        driver.uninstall.assert_called()
+        self.session.event_called_with('system.driver.uninstall', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'uninstalling': True,
+            'success': None,
+            'message': None,
+        })
+
+    def test_uninstall_driver_already_uninstalled(self):
+        self.init_session()
+        driver = Mock()
+        driver.is_installed = Mock(return_value=False)
+        self.module.drivers.get_driver = Mock(return_value=driver)
+
+        with self.assertRaises(CommandInfo) as cm:
+            self.module.uninstall_driver('dummy', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Driver is not installed')
+
+    def test_uninstall_driver_exception(self):
+        self.init_session()
+        self.module.drivers.get_driver = Mock(return_value=None)
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.uninstall_driver('dummy', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'No driver found for specified parameters')
+
+        with self.assertRaises(MissingParameter) as cm:
+            self.module.uninstall_driver(None, 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is missing')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.uninstall_driver(123, 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.uninstall_driver('', 'dummy-driver')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+
+        with self.assertRaises(MissingParameter) as cm:
+            self.module.uninstall_driver('dummy', None)
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is missing')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.uninstall_driver('dummy', 123)
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+
+        with self.assertRaises(InvalidParameter) as cm:
+            self.module.uninstall_driver('dummy', '')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
 
 if __name__ == '__main__':
     # coverage run --omit="*lib/python*/*","test_*" --concurrency=thread test_system.py; coverage report -m -i

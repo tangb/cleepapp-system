@@ -9,7 +9,7 @@ import uuid
 from zipfile import ZipFile, ZIP_DEFLATED
 from tempfile import NamedTemporaryFile
 import psutil
-from cleep.exception import InvalidParameter, MissingParameter, CommandError
+from cleep.exception import InvalidParameter, MissingParameter, CommandError, CommandInfo
 from cleep.core import CleepModule
 from cleep.libs.internals.task import Task
 from cleep.libs.internals.console import Console
@@ -885,13 +885,17 @@ class System(CleepModule):
         Raises:
             MissingParameter: if a parameter is missing
             InvalidParameter: if driver was not found
-            CommandError: if command failed
+            CommandInfo: if driver already installed
         """
         # check parameters
-        if driver_type is None or len(driver_type) == 0:
+        if driver_type is None:
             raise MissingParameter('Parameter "driver_type" is missing')
-        if driver_name is None or len(driver_name) == 0:
+        if not isinstance(driver_type, str) or len(driver_type) == 0:
+            raise InvalidParameter('Parameter "driver_type" is invalid')
+        if driver_name is None:
             raise MissingParameter('Parameter "driver_name" is missing')
+        if not isinstance(driver_name, str) or len(driver_name) == 0:
+            raise InvalidParameter('Parameter "driver_name" is invalid')
 
         # get driver
         driver = self.drivers.get_driver(driver_type, driver_name)
@@ -899,7 +903,7 @@ class System(CleepModule):
             raise InvalidParameter('No driver found for specified parameters')
 
         if not force and driver.is_installed():
-            raise CommandError('Driver is already installed')
+            raise CommandInfo('Driver is already installed')
 
         # launch installation (non blocking) and send event
         driver.install(self._install_driver_terminated, logger=self.logger)
@@ -910,8 +914,6 @@ class System(CleepModule):
             'success': None,
             'message': None,
         })
-
-        return True
 
     def _uninstall_driver_terminated(self, driver_type, driver_name, success, message):
         """
@@ -951,13 +953,17 @@ class System(CleepModule):
         Raises:
             MissingParameter: if a parameter is missing
             InvalidParameter: if driver was not found
-            CommandError: if command failed
+            CommandInfo: if driver is not installed
         """
         # check parameters
-        if driver_type is None or len(driver_type) == 0:
+        if driver_type is None:
             raise MissingParameter('Parameter "driver_type" is missing')
-        if driver_name is None or len(driver_name) == 0:
+        if not isinstance(driver_type, str) or len(driver_type) == 0:
+            raise InvalidParameter('Parameter "driver_type" is invalid')
+        if driver_name is None:
             raise MissingParameter('Parameter "driver_name" is missing')
+        if not isinstance(driver_name, str) or len(driver_name) == 0:
+            raise InvalidParameter('Parameter "driver_name" is invalid')
 
         # get driver instance
         driver = self.drivers.get_driver(driver_type, driver_name)
@@ -965,7 +971,7 @@ class System(CleepModule):
             raise InvalidParameter('No driver found for specified parameters')
 
         if not driver.is_installed():
-            raise CommandError('Driver is not installed')
+            raise CommandInfo('Driver is not installed')
 
         # launch uninstallation (non blocking) and send event
         driver.uninstall(self._uninstall_driver_terminated, logger=self.logger)
