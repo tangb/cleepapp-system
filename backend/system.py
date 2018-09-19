@@ -128,7 +128,6 @@ class System(RaspIotModule):
         self.systemMonitoringMemory = self._get_event(u'system.monitoring.memory')
         self.systemAlertMemory = self._get_event(u'system.alert.memory')
         self.systemAlertDisk = self._get_event(u'system.alert.disk')
-        self.alertEmailSend = self._get_event(u'alert.email.send')
         self.systemModuleInstall = self._get_event(u'system.module.install')
         self.systemModuleUninstall = self._get_event(u'system.module.uninstall')
         self.systemModuleUpdate = self._get_event(u'system.module.update')
