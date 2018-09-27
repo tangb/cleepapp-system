@@ -154,7 +154,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             $mdDialog.show({
                 controller: function() { return self; },
                 controllerAs: 'updateLogsCtl',
-                templateUrl: 'logs.directive.html',
+                templateUrl: 'logs.html',
                 parent: angular.element(document.body),
                 targetEvent: ev,
                 clickOutsideToClose: true,
@@ -527,7 +527,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
     };
 
     return {
-        templateUrl: 'system.directive.html',
+        templateUrl: 'system.config.html',
         replace: true,
         scope: true,
         controller: systemController,

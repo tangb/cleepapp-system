@@ -8,7 +8,7 @@
         "services": ["system.service.js"]
     },
     "config": {
-        "js": ["system.directive.js"],
-        "html": ["system.directive.html", "logs.directive.html"]
+        "js": ["system.config.js"],
+        "html": ["system.config.html", "logs.html"]
     }
 }
