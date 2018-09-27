@@ -36,6 +36,7 @@ class System(RaspIotModule):
     """
     MODULE_AUTHOR = u'Cleep'
     MODULE_VERSION = u'1.0.0'
+    MODULE_CATEGORY = u'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
     MODULE_DESCRIPTION = u'Helps updating, controlling and monitoring the device'
