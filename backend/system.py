@@ -3,7 +3,7 @@
     
 import os
 import logging
-from raspiot.utils import InvalidParameter, MissingParameter, NoResponse, InvalidModule, CommandError
+from raspiot.utils import InvalidParameter, MissingParameter, NoResponse, InvalidModule, CommandError, CommandInfo
 from raspiot.raspiot import RaspIotModule
 from raspiot.libs.internals.task import Task
 import raspiot
@@ -40,6 +40,7 @@ class System(RaspIotModule):
     MODULE_PRICE = 0
     MODULE_DEPS = []
     MODULE_DESCRIPTION = u'Helps updating, controlling and monitoring the device'
+    MODULE_LONGDESCRIPTION = u''
     MODULE_LOCKED = True
     MODULE_TAGS = [u'troubleshoot', u'locale', u'events', u'monitoring', u'update', u'log']
     MODULE_COUNTRY = u''
@@ -49,9 +50,6 @@ class System(RaspIotModule):
     MODULE_URLSITE = None
 
     MODULE_CONFIG_FILE = u'system.conf'
-
-    #TODO get log file path from bin/raspiot
-    LOG_FILE = u'/var/log/raspiot.log'
 
     DEFAULT_CONFIG = {
         u'monitoring': False,
@@ -101,6 +99,7 @@ class System(RaspIotModule):
 
         #members
         self.events_factory = bootstrap[u'events_factory']
+        self.log_file = bootstrap[u'log_file']
         self.__monitor_cpu_uuid = None
         self.__monitor_memory_uuid = None
         self.__monitoring_cpu_task = None
@@ -408,7 +407,8 @@ class System(RaspIotModule):
                 u'status': status[u'status'],
                 u'time': int(time.time()),
                 u'stdout': status[u'stdout'],
-                u'stderr': status[u'stderr']
+                u'stderr': status[u'stderr'],
+                u'process': status[u'process']
             }
             self._set_config_field(u'lastmodulesinstalls', lastmodulesinstalls)
 
@@ -419,7 +419,7 @@ class System(RaspIotModule):
 
             #update raspiot.conf
             raspiot = RaspiotConf(self.cleep_filesystem)
-            return raspiot.install_module(status[u'module'])
+            raspiot.install_module(status[u'module'])
 
     def install_module(self, module):
         """
@@ -437,9 +437,10 @@ class System(RaspIotModule):
 
         #get module infos
         infos = self.__get_module_infos(module)
+        self.logger.debug(u'Module infos: %s' % infos)
 
         #launch installation (non blocking)
-        install = Install(self.cleep_filesystem, self.__module_install_callback)
+        install = Install(self.cleep_filesystem, self.crash_report, self.__module_install_callback)
         install.install_module(module, infos)
 
         return True
@@ -462,7 +463,7 @@ class System(RaspIotModule):
 
             #update raspiot.conf
             raspiot = RaspiotConf(self.cleep_filesystem)
-            return raspiot.uninstall_module(status[u'module'])
+            raspiot.uninstall_module(status[u'module'])
 
     def uninstall_module(self, module):
         """
@@ -479,7 +480,7 @@ class System(RaspIotModule):
             raise MissingParameter(u'Parameter "module" is missing')
 
         #launch uninstallation
-        install = Install(self.cleep_filesystem, self.__module_uninstall_callback)
+        install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
         install.uninstall_module(module)
 
         return True
@@ -513,7 +514,7 @@ class System(RaspIotModule):
 
             #update raspiot.conf adding module to updated ones
             raspiot = RaspiotConf(self.cleep_filesystem)
-            return raspiot.update_module(status[u'module'])
+            raspiot.update_module(status[u'module'])
 
     def update_module(self, module):
         """
@@ -533,7 +534,7 @@ class System(RaspIotModule):
         infos = self.__get_module_infos(module)
 
         #launch module update
-        install = Install(self.cleep_filesystem, self.__module_update_callback)
+        install = Install(self.cleep_filesystem, sef.crash_report, self.__module_update_callback)
         install.update_module(module, infos)
 
         return True
@@ -597,42 +598,49 @@ class System(RaspIotModule):
             dict: last update infos::
                 {
                     updateavailable (bool): True if update available
-                    lastcheckraspiot (int): last raspiot update check timestamp
                     lastcheckmodules (int): last modules update check timestamp
+                    newmodulesavailable (bool): True if new modules available (it needs to reload all configuration)
                 }
         """
         #get modules list from inventory
         modules = self.__get_modules()
+        modules_json = self.modules_json.get_json()
+        modules_count_before_update = 0
+        if modules_json and u'list' in modules_json:
+            modules_count_before_update = len(modules_json[u'list'])
+        self.logger.debug(u'modules_count_before_update=%s' % modules_count_before_update)
 
         #update latest modules.json file
-        self.modules_json.update()
-        remote_modules_json = self.modules_json.get_json()
-
-        #check downloaded file validity
-        if u'list' not in remote_modules_json or u'update' not in remote_modules_json:
+        file_updated = False
+        try:
+            file_updated = self.modules_json.update()
+            self.logger.debug(u'file_updated=%s' % file_updated)
+        except:
             #invalid modules.json
             self.logger.error(u'Invalid modules.json file downloaded, unable to update modules')
-            raise CommandError(u'Invalid modules.json file downloaded, unable to update modules')
-
-        #load local modules.json file
-        local_modules_json = None
-        if self.modules_json.exists():
-            #local file exists, load its content
-            local_modules_json = self.modules_json.get_json()
+            self.crash_report.manual_report('Invalid modules.json file downloaded')
+            raise CommandError(u'Invalid modules file downloaded')
 
         #check if new modules.json file version available
-        if local_modules_json is None or remote_modules_json[u'update']>local_modules_json[u'update']:
-            #file isn't existing yet or updated, overwrite local one
-            self.logger.debug(u'Save new modules.json file: %s' % remote_modules_json)
-            self.cleep_filesystem.write_json(MODULES_JSON, remote_modules_json)
-            local_modules_json = remote_modules_json
+        modules_list_updated = False
+        if file_updated:
+            #update modules.json
+            modules_json = self.modules_json.get_json()
+
+            #check if modules count changed
+            if modules_count_before_update!=len(modules_json[u'list']):
+                modules_list_updated = True
+
+            #reload modules list in inventory
+            self.logger.debug(u'Reloading modules in inventory')
+            self.send_command(u'load_modules', u'inventory', {}, 10.0)
 
         #check for modules updates available
         update_available = False
         for module in modules:
             current_version = modules[module][u'version']
-            if module in local_modules_json[u'list']:
-                new_version = local_modules_json[u'list'][module][u'version']
+            if module in modules_json[u'list']:
+                new_version = modules_json[u'list'][module][u'version']
                 if Tools.compare_versions(current_version, new_version):
                     #new version available for current module
                     self.logger.info('New version available for module "%s" (%s->%s)' % (module, current_version, new_version))
@@ -651,7 +659,8 @@ class System(RaspIotModule):
 
         return {
             u'updateavailable': update_available,
-            u'lastcheckmodules': config[u'lastcheckmodules'],
+            u'moduleslistupdated': modules_list_updated,
+            u'lastcheckmodules': config[u'lastcheckmodules']
         }
 
     def check_raspiot_updates(self):
@@ -829,7 +838,7 @@ class System(RaspIotModule):
             res = self.check_raspiot_updates()
             if not res[u'updateavailable']:
                 #there is really no update available
-                raise CommandError(u'No raspiot update available')
+                raise CommandInfo(u'No raspiot update available')
             else:
                 self.logger.debug('Finally an update is available, process it')
 
@@ -1098,7 +1107,7 @@ class System(RaspIotModule):
         Raises:
             Exception: if error occured
         """
-        if os.path.exists(self.LOG_FILE):
+        if os.path.exists(self.log_file):
             #log file exists
 
             #zip it
@@ -1106,7 +1115,7 @@ class System(RaspIotModule):
             log_filename = fd.name
             self.logger.debug(u'Zipped log filename: %s' % log_filename)
             archive = ZipFile(fd, u'w', ZIP_DEFLATED)
-            archive.write(self.LOG_FILE, u'raspiot.log')
+            archive.write(self.log_file, u'raspiot.log')
             archive.close()
 
             now = datetime.now()
@@ -1126,8 +1135,8 @@ class System(RaspIotModule):
         Return logs file content
         """
         lines = []
-        if os.path.exists(self.LOG_FILE):
-            lines = self.cleep_filesystem.read_data(self.LOG_FILE)
+        if os.path.exists(self.log_file):
+            lines = self.cleep_filesystem.read_data(self.log_file)
 
         return lines
 

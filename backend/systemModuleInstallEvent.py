@@ -37,7 +37,8 @@ class SystemModuleInstallEvent(Event):
             u'status',
             u'stdout',
             u'stderr',
-            u'updateprocess'
+            u'updateprocess',
+            u'process'
         ]
         return all(key in keys for key in params.keys())
 

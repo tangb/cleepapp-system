@@ -6,6 +6,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 {
     var self = this;
     self.raspiotInstallStatus = 0; //idle status
+    self.modulesInstallStatus = {};
     self.restartButtonId = null;
     self.rebootButtonId = null;
     
@@ -85,7 +86,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      */
     self.updateRaspiot = function()
     {
-        return rpcService.sendCommand('update_raspiot', 'system', {}, 300);
+        return rpcService.sendCommand('update_raspiot', 'system', null, 300);
     };
 
     /**
@@ -164,7 +165,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      */
     self.checkModulesUpdates = function()
     {
-        return rpcService.sendCommand('check_modules_updates', 'system');
+        return rpcService.sendCommand('check_modules_updates', 'system', null, 30);
     };
 
     /**
@@ -200,6 +201,28 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     };
 
     /**
+     * Update pending module status after install
+     * Everything will be reloaded automatically after page reloading
+     * @param module: module name
+     */
+    self.updateModulePendingStatus = function(module, pending)
+    {   
+        //update pending status in raspiotService
+        raspiotService.modules[module].pending = pending;
+    };
+
+    /** 
+     * Update installing module status
+     * @param module (string): module name
+     * @param installing (bool): installing value
+     */
+    self.updateModuleInstallingStatus = function(module, installing)
+    {
+        //update pending status in raspiotService
+        raspiotService.modules[module].installing = installing;
+    };
+
+    /**
      * Watch for system config changes to add restart/reboot buttons if restart/reboot is needed
      */
     $rootScope.$watchCollection(
@@ -212,23 +235,23 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 //handle restart button
                 if( !newConfig.config.needrestart && self.restartButtonId )
                 {
-                    appToolbarService.addButton(self.restartButtonId);
+                    appToolbarService.removeButton(self.restartButtonId);
                     self.restartButtonId = null;
                 }
                 else if( newConfig.config.needrestart && !self.restartButtonId )
                 {
-                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', raspiotService.restart, 'md-accent');
+                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', raspiotService.restart(3), 'md-accent');
                 }
 
                 //handle reboot button
                 if( !newConfig.config.needreboot && self.rebootButtonId )
                 {
-                    appToolbarService.addButton(self.rebootButtonId);
+                    appToolbarService.removeButton(self.rebootButtonId);
                     self.rebootButtonId = null;
                 }
                 else if( newConfig.config.needreboot && !self.rebootButtonId )
                 {
-                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot, 'md-accent');
+                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot(), 'md-accent');
                 }
             }
         }
@@ -278,16 +301,69 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         }
         else if( params.status==2 )
         {   
-            toast.success('Application has been installed. Please reboot device.');
+            toast.success('CleepOS has been updated successfully. Please reboot device.');
             //reset install status to remove item from ui
             self.raspiotInstallStatus = 0;
         }   
         else
         {   
-            toast.error('Error during application update. See logs for details.');
+            toast.error('Error during CleepOS update. See logs for details.');
             //reset install status to remove item from ui
             self.raspiotInstallStatus = 0;
         }   
+    });
+
+    /**
+     * Handle module update event
+     */
+    $rootScope.$on('system.module.install', function(event, uuid, params) {
+    	//drop useless status
+        if( !params.status )
+        {
+            return;
+        }
+
+        //drop module install triggered during module update
+        if( params.updateprocess===true )
+		{
+			return;
+		}
+
+		if( params.status===1 )
+		{
+			//installing status
+            self.updateModuleInstallingStatus(params.module, true);
+		}
+		else if( params.status===2 )
+		{
+	        //error occured during module install, reload config to get install outputs
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update installing status to false
+                    self.updateModuleInstallingStatus(params.module, false);
+                    
+                    //user message
+                    toast.error('Error during app "' + params.module + '" install. See logs for details.');
+                });
+		}
+        else if( params.status===3 )
+        {
+            //module installation canceled (status not supported yet)
+            self.updateModuleInstallingStatus(params.module, false);
+        }
+        else if( params.status===4 )
+        {
+            //module installed successfully, reload config to get clean modules list updated
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update pending+installing status
+                    self.updateModuleInstallingStatus(params.module, false);
+                    self.updateModulePendingStatus(params.module, true);
+                    
+                    //user message
+                    toast.success('App "' + params.module + '" installed successfully. Restart to apply changes.');
+                });
+        }
     });
 
 };

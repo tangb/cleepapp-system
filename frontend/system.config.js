@@ -2,8 +2,8 @@
  * System config directive
  * Handle system configuration
  */
-var systemConfigDirective = function($filter, $timeout, $q, toast, systemService, raspiotService, confirm, $mdDialog) {
-
+var systemConfigDirective = function($filter, $timeout, $q, toast, systemService, raspiotService, confirm, $mdDialog)
+{
     var systemController = ['$scope', function($scope)
     {
         var self = this;
@@ -116,28 +116,28 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             var message = null;
             systemService.checkModulesUpdates()
                 .then(function(resp) {
-                    if( resp.data.updateavailable===false )
+                    if( resp.data.updateavailable===true )
                     {
+                        //priority to installed module updates
+                        message = 'Update(s) available. Please check installed modules list';
+                    }
+                    else if( resp.data.moduleslistupdated===true )
+                    {
+                        //if no installed modules update, display new modules are available
+                        message = 'No installed modules update but new modules available for install';
+                    }
+                    else {
                         message = 'No update available';
                     }
-                    else
-                    {
-                        message = 'Update(s) available. Please check installed modules list in settings';
-                    }
 
-                    //refresh system module config
-                    return raspiotService.reloadModuleConfig('system');
-                })
-                .then(function(config) {
-                    //set config
-                    self.setConfig(config);
+                    return raspiotService.loadConfig();
                 })
                 .finally(function() {
                     if( message )
                     {
                         toast.info(message);
                     }
-                })
+                });
         };
 
         /**
