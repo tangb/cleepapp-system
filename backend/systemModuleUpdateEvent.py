@@ -36,7 +36,8 @@ class SystemModuleUpdateEvent(Event):
             u'module',
             u'status',
             u'stdout',
-            u'stderr'
+            u'stderr',
+            u'process'
         ]
         return all(key in keys for key in params.keys())
 

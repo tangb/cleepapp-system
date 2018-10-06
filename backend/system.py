@@ -72,7 +72,7 @@ class System(RaspIotModule):
             u'stdout': [],
             u'stderr': []
         },
-        u'lastmodulesinstalls' : {},
+        u'lastmodulesprocessing' : {},
         u'raspiotbackupdelay': 15
     }
 
@@ -243,7 +243,7 @@ class System(RaspIotModule):
         out[u'raspiotupdateavailable'] = config[u'raspiotupdateavailable']
         out[u'modulesupdateavailable'] = config[u'modulesupdateavailable']
         out[u'lastraspiotupdate'] = config[u'lastraspiotupdate']
-        out[u'lastmodulesinstalls'] = config[u'lastmodulesinstalls']
+        out[u'lastmodulesprocessing'] = config[u'lastmodulesprocessing'].keys()
         out[u'raspiotupdatepending'] = self.raspiot_update_pending
 
         return out
@@ -300,6 +300,30 @@ class System(RaspIotModule):
             #backup
             if not event[u'params'][u'minute'] % self.raspiot_backup_delay:
                 self.backup_raspiot_config()
+
+    def get_last_module_processing(self, module):
+        """
+        Return last module processing
+
+        Args:
+            module (string): module name
+
+        Returns:
+            dict: last module processing::
+                {
+                    status (int): last processing status (see install lib)
+                    process (list): process log messages
+                    stdout (list): scripts outputs
+                    stderr (list): scripts errors
+                    time (int): processing time
+                }
+        """
+        config = self._get_config()
+
+        if module in config[u'lastmodulesprocessing']:
+            return config[u'lastmodulesprocessing'][module]
+
+        return None
 
     def set_monitoring(self, monitoring):
         """
@@ -388,6 +412,34 @@ class System(RaspIotModule):
 
         return module_infos
 
+    def __update_last_module_processing(self, status):
+        """
+        Update last module processing in config
+
+        Args:
+            status (dict): last status as returned by installmodule lib
+        """
+        #get config
+        lastmodulesprocessing = self._get_config_field(u'lastmodulesprocessing')
+
+        #update last module processing
+        if status[u'status']==Install.STATUS_ERROR:
+            #save last status when error
+            lastmodulesprocessing[status[u'module']] = {
+                u'status': status[u'status'],
+                u'time': int(time.time()),
+                u'stdout': status[u'stdout'],
+                u'stderr': status[u'stderr'],
+                u'process': status[u'process']
+            }
+
+        elif status[u'status']==Install.STATUS_DONE and status[u'module'] in lastmodulesprocessing:
+            #clear existing status when done
+            del lastmodulesprocessing[status[u'module']]
+
+        #save config
+        self._set_config_field(u'lastmodulesprocessing', lastmodulesprocessing)
+
     def __module_install_callback(self, status):
         """
         Module install callback
@@ -400,17 +452,8 @@ class System(RaspIotModule):
         #send process status
         self.systemModuleInstall.send(params=status)
 
-        #save last stdout/stderr from install
-        if status[u'status'] in (Install.STATUS_DONE, Install.STATUS_ERROR):
-            lastmodulesinstalls = self._get_config_field(u'lastmodulesinstalls')
-            lastmodulesinstalls[status[u'module']] = {
-                u'status': status[u'status'],
-                u'time': int(time.time()),
-                u'stdout': status[u'stdout'],
-                u'stderr': status[u'stderr'],
-                u'process': status[u'process']
-            }
-            self._set_config_field(u'lastmodulesinstalls', lastmodulesinstalls)
+        #save last module processing
+        self.__update_last_module_processing(status)
 
         #handle end of process to trigger restart
         if status[u'status']==Install.STATUS_DONE:
@@ -457,6 +500,9 @@ class System(RaspIotModule):
         #send process status to ui
         self.systemModuleUninstall.send(params=status)
 
+        #save last module processing
+        self.__update_last_module_processing(status)
+
         #handle end of process to trigger restart
         if status[u'status']==Install.STATUS_DONE:
             self.__need_restart = True
@@ -465,12 +511,13 @@ class System(RaspIotModule):
             raspiot = RaspiotConf(self.cleep_filesystem)
             raspiot.uninstall_module(status[u'module'])
 
-    def uninstall_module(self, module):
+    def uninstall_module(self, module, force=False):
         """
         Uninstall specified module
 
         Params:
             module (string): module name to install
+            force (bool): uninstall module and continue if error occured
 
         Returns:
             bool: True if module uninstalled
@@ -481,7 +528,7 @@ class System(RaspIotModule):
 
         #launch uninstallation
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
-        install.uninstall_module(module)
+        install.uninstall_module(module, force)
 
         return True
 
@@ -497,16 +544,8 @@ class System(RaspIotModule):
         #send process status to ui
         self.systemModuleUpdate.send(params=status)
 
-        #save last stdout/stderr from install
-        if status[u'status'] in (Install.STATUS_DONE, Install.STATUS_ERROR):
-            lastmodulesinstalls = self._get_config_field(u'lastmodulesinstalls')
-            lastmodulesinstalls[status[u'module']] = {
-                u'status': status[u'status'],
-                u'time': int(time.time()),
-                u'stdout': status[u'stdout'],
-                u'stderr': status[u'stderr']
-            }
-            self._set_config_field(u'lastmodulesinstalls', lastmodulesinstalls)
+        #save last module processing
+        self.__update_last_module_processing(status)
 
         #handle end of process to trigger restart
         if status[u'status']==Install.STATUS_DONE:

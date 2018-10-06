@@ -212,14 +212,14 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     };
 
     /** 
-     * Update installing module status
+     * Update processing status
      * @param module (string): module name
-     * @param installing (bool): installing value
+     * @param processing (bool): processing value
      */
-    self.updateModuleInstallingStatus = function(module, installing)
+    self.updateModuleProcessingStatus = function(module, processing)
     {
         //update pending status in raspiotService
-        raspiotService.modules[module].installing = installing;
+        raspiotService.modules[module].processing = processing;
     };
 
     /**
@@ -240,7 +240,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 }
                 else if( newConfig.config.needrestart && !self.restartButtonId )
                 {
-                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', raspiotService.restart(3), 'md-accent');
+                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', raspiotService.restart, 'md-accent');
                 }
 
                 //handle reboot button
@@ -251,7 +251,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 }
                 else if( newConfig.config.needreboot && !self.rebootButtonId )
                 {
-                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot(), 'md-accent');
+                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot, 'md-accent');
                 }
             }
         }
@@ -314,7 +314,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     });
 
     /**
-     * Handle module update event
+     * Handle module install event
      */
     $rootScope.$on('system.module.install', function(event, uuid, params) {
     	//drop useless status
@@ -323,7 +323,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             return;
         }
 
-        //drop module install triggered during module update
+        //drop module install triggered during module install 
         if( params.updateprocess===true )
 		{
 			return;
@@ -331,16 +331,16 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 
 		if( params.status===1 )
 		{
-			//installing status
-            self.updateModuleInstallingStatus(params.module, true);
+			//processing status
+            self.updateModuleProcessingStatus(params.module, true);
 		}
 		else if( params.status===2 )
 		{
 	        //error occured during module install, reload config to get install outputs
             raspiotService.loadConfig()
                 .then(function() {
-                    //update installing status to false
-                    self.updateModuleInstallingStatus(params.module, false);
+                    //update processing status to false
+                    self.updateModuleProcessingStatus(params.module, false);
                     
                     //user message
                     toast.error('Error during app "' + params.module + '" install. See logs for details.');
@@ -348,20 +348,109 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		}
         else if( params.status===3 )
         {
-            //module installation canceled (status not supported yet)
-            self.updateModuleInstallingStatus(params.module, false);
-        }
-        else if( params.status===4 )
-        {
             //module installed successfully, reload config to get clean modules list updated
             raspiotService.loadConfig()
                 .then(function() {
-                    //update pending+installing status
-                    self.updateModuleInstallingStatus(params.module, false);
+                    //update pending+processing status
+                    self.updateModuleProcessingStatus(params.module, false);
                     self.updateModulePendingStatus(params.module, true);
                     
                     //user message
                     toast.success('App "' + params.module + '" installed successfully. Restart to apply changes.');
+                });
+        }
+        else if( params.status===4 )
+        {
+            //module installation canceled (not supported yet)
+            self.updateModuleProcessingStatus(params.module, false);
+        }
+    });
+
+    /**
+     * Handle module update event
+     */
+    $rootScope.$on('system.module.update', function(event, uuid, params) {
+    	//drop useless status
+        if( !params.status )
+        {
+            return;
+        }
+
+		if( params.status===1 )
+		{
+			//processing status
+            self.updateModuleProcessingStatus(params.module, true);
+		}
+		else if( params.status===2 )
+		{
+	        //error occured during module update, reload config to get install outputs
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update processing status to false
+                    self.updateModuleProcessingStatus(params.module, false);
+                    
+                    //user message
+                    toast.error('Error during app "' + params.module + '" update. See logs for details.');
+                });
+		}
+        else if( params.status===3 )
+        {
+            //module updated successfully, reload config to get clean modules list updated
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update pending+processing status
+                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModulePendingStatus(params.module, true);
+                    
+                    //user message
+                    toast.success('App "' + params.module + '" updated successfully. Restart to apply changes.');
+                });
+        }
+        else if( params.status===4 )
+        {
+            //module update canceled (not supported yet)
+            self.updateModuleProcessingStatus(params.module, false);
+        }
+    });
+
+    /**
+     * Handle module uninstall event
+     */
+    $rootScope.$on('system.module.uninstall', function(event, uuid, params) {
+    	//drop useless status
+        if( !params.status )
+        {
+            return;
+        }
+
+		if( params.status===1 )
+		{
+			//processing status
+            self.updateModuleProcessingStatus(params.module, true);
+		}
+		else if( params.status===2 )
+		{
+	        //error occured during module uninstall, reload config to get uninstall outputs
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update processing status to false
+                    self.updateModuleProcessingStatus(params.module, false);
+                    
+                    //user message
+                    toast.error('Error during app "' + params.module + '" uninstall. See logs for details.');
+                });
+		}
+        else if( params.status===3 )
+        {
+            //module uninstalled successfully, reload config to get clean modules list updated
+            raspiotService.loadConfig()
+                .then(function() {
+                    //update pending+processing status
+                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModulePendingStatus(params.module, true);
+                    
+                    //user message
+                    toast.success('App "' + params.module + '" uninstall successfully. Restart to apply changes.');
                 });
         }
     });

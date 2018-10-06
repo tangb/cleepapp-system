@@ -38,7 +38,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         self.lastCheckModules = null;
         self.version = '';
         self.crashReport = false;
-        self.lastModulesInstalls = {};
+        self.lastModulesProcessing = {};
         self.raspiotUpdatePending = false;
         self.backupDelay = 15;
 
@@ -490,7 +490,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             self.lastRaspiotUpdate = config.lastraspiotupdate;
             self.lastRaspiotUpdate.stdoutStr = config.lastraspiotupdate.stdout.join('\n');
             self.lastRaspiotUpdate.stderrStr = config.lastraspiotupdate.stderr.join('\n');
-            self.lastModulesInstalls = config.lastmodulesinstalls;
+            self.lastModulesProcessing = config.lastmodulesprocessing;
             self.raspiotUpdatePending = config.raspiotupdatepending;
             self.backupDelay = config.raspiotbackupdelay;
         };
