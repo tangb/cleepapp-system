@@ -116,6 +116,10 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             var message = null;
             systemService.checkModulesUpdates()
                 .then(function(resp) {
+                    //update current status
+                    self.lastCheckModules = resp.data.lastcheckmodules;
+
+                    //user message
                     if( resp.data.updateavailable===true )
                     {
                         //priority to installed module updates

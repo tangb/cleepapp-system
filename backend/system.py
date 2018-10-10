@@ -672,7 +672,7 @@ class System(RaspIotModule):
 
             #reload modules list in inventory
             self.logger.debug(u'Reloading modules in inventory')
-            self.send_command(u'load_modules', u'inventory', {}, 10.0)
+            self.send_command(u'reload_modules', u'inventory', {}, 10.0)
 
         #check for modules updates available
         update_available = False
