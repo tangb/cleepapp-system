@@ -1179,6 +1179,18 @@ class System(RaspIotModule):
 
         return lines
 
+    def clear_logs(self):
+        """
+        Clear logs
+
+        Returns:
+            bool: True if operation succeed, False otherwise
+        """
+        if os.path.exists(self.log_file):
+            return self.cleep_filesystem.write_data(self.log_file, u'')
+
+        return False
+
     def set_trace(self, trace):
         """
         Set trace (full debug)

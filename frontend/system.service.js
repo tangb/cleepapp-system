@@ -106,6 +106,14 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     };
 
     /**
+     * Clear logs
+     */
+    self.clearLogs = function()
+    {
+        return rpcService.sendCommand('clear_logs', 'system');
+    };
+
+    /**
      * Set module debug
      */
     self.setModuleDebug = function(module, debug)
