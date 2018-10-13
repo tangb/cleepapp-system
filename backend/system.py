@@ -41,7 +41,7 @@ class System(RaspIotModule):
     MODULE_DEPS = []
     MODULE_DESCRIPTION = u'Helps updating, controlling and monitoring the device'
     MODULE_LONGDESCRIPTION = u'Application that helps you to configure your system'
-    MODULE_LOCKED = True
+    MODULE_CORE = True
     MODULE_TAGS = [u'troubleshoot', u'locale', u'events', u'monitoring', u'update', u'log']
     MODULE_COUNTRY = u''
     MODULE_URLINFO = None
