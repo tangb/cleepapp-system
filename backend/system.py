@@ -615,7 +615,7 @@ class System(RaspIotModule):
             for module in self.__modules:
                 #locked module needs to be removed from list (system module updated by raspiot)
                 #like not installed modules
-                if self.__modules[module][u'locked'] or not self.__modules[module][u'installed']:
+                if self.__modules[module][u'core'] or not self.__modules[module][u'installed']:
                     modules_to_delete.append(module)
                 
                 #append updatable/updating flags
