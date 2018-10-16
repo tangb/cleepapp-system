@@ -62,8 +62,8 @@ class System(RaspIotModule):
 
         u'lastcheckraspiot': None,
         u'lastcheckmodules': None,
-        u'raspiotupdateenabled': True,
-        u'modulesupdateenabled': True,
+        u'raspiotupdateenabled': False,
+        u'modulesupdateenabled': False,
         u'raspiotupdateavailable': None,
         u'modulesupdateavailable': False,
         u'lastraspiotupdate': {
