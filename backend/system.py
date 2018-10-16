@@ -64,7 +64,7 @@ class System(RaspIotModule):
         u'lastcheckmodules': None,
         u'raspiotupdateenabled': True,
         u'modulesupdateenabled': True,
-        u'raspiotupdateavailable': False,
+        u'raspiotupdateavailable': None,
         u'modulesupdateavailable': False,
         u'lastraspiotupdate': {
             u'status': None,
@@ -289,11 +289,11 @@ class System(RaspIotModule):
                 self.check_raspiot_updates()
                 self.check_modules_updates()
 
-                #and perform updates if allowed
+                #and perform updates if allowed (do not update cleepos and modules at the same time)
                 config = self._get_config()
-                if config[u'raspiotupdateenabled'] is True and self.raspiot_update_pending is False and config[u'raspiotupdateavailable'] is True:
+                if config[u'raspiotupdateenabled'] is True and self.raspiot_update_pending is False and config[u'raspiotupdateavailable'] is not None:
                     self.update_raspiot()
-                if config[u'modulesupdateenabled'] is True:
+                elif config[u'modulesupdateenabled'] is True:
                     #TODO update modules that need to be updated
                     pass
 
@@ -573,7 +573,7 @@ class System(RaspIotModule):
         infos = self.__get_module_infos(module)
 
         #launch module update
-        install = Install(self.cleep_filesystem, sef.crash_report, self.__module_update_callback)
+        install = Install(self.cleep_filesystem, self.crash_report, self.__module_update_callback)
         install.update_module(module, infos)
 
         return True
@@ -709,13 +709,13 @@ class System(RaspIotModule):
         Return:
             dict: last update infos::
                 {
-                    updateavailable (bool): True if update available
+                    updateavailable (string): available version, None if no update available
                     lastcheckraspiot (int): last raspiot update check timestamp
                     lastcheckmodules (int): last modules update check timestamp
                 }
         """
         #init
-        update_available = False
+        update_available = None
         self.__raspiot_update[u'package'] = None
         self.__raspiot_update[u'checksum'] = None
 
@@ -751,7 +751,7 @@ class System(RaspIotModule):
                     if self.__raspiot_update[u'package'] and self.__raspiot_update[u'checksum']:
                         self.logger.debug(u'Update and checksum found, can trigger update')
                         self.logger.debug(u'raspiot_update: %s' % self.__raspiot_update)
-                        update_available = True
+                        update_available = version
 
             else:
                 #no release found
@@ -850,7 +850,7 @@ class System(RaspIotModule):
 
             #save update status
             self._update_config({
-                u'raspiotupdateavailable': False,
+                u'raspiotupdateavailable': None,
                 u'lastraspiotupdate': {
                     u'status': status[u'status'],
                     u'time': int(time.time()),

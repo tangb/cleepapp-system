@@ -37,8 +37,8 @@
             </md-list-item>
             <md-list-item ng-if="systemCtl.raspiotUpdateAvailable && systemCtl.systemService.raspiotInstallStatus===0 && !systemCtl.raspiotUpdatePending">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>New application version available</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.updateRaspiot()">Update application</md-button>
+                <p>New application version available (v{{systemCtl.raspiotUpdateAvailable}})</p>
+                <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.updateRaspiot()">Update CleepOS</md-button>
             </md-list-item>
             <md-list-item ng-if="systemCtl.raspiotUpdatePending">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
