@@ -243,7 +243,7 @@
                 Modules to debug
             </div>
             <div>
-                <div ng-repeat="(module, debug) in systemCtl.debugs">
+                <div ng-repeat="(module, debug) in systemCtl.debugs | orderObjByKey">
                     <md-checkbox ng-model="debug.debug" aria-label="Debug enabled" ng-change="systemCtl.moduleDebugChanged(module)">
                         {{module}}
                     </md-checkbox>
