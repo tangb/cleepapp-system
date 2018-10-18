@@ -9,6 +9,6 @@
     },
     "config": {
         "js": ["system.config.js"],
-        "html": ["system.config.html", "logs.html"]
+        "html": ["system.config.html", "logs.dialog.html", "update.dialog.html"]
     }
 }

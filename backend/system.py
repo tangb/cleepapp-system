@@ -636,9 +636,9 @@ class System(RaspIotModule):
         Return:
             dict: last update infos::
                 {
-                    updateavailable (bool): True if update available
+                    modulesupdateavailable (bool): True if update available
                     lastcheckmodules (int): last modules update check timestamp
-                    newmodulesavailable (bool): True if new modules available (it needs to reload all configuration)
+                    moduleslistupdated (bool): True if new modules available (it needs to reload all configuration)
                 }
         """
         #get modules list from inventory
@@ -697,7 +697,7 @@ class System(RaspIotModule):
         self._update_config(config)
 
         return {
-            u'updateavailable': update_available,
+            u'modulesupdateavailable': update_available,
             u'moduleslistupdated': modules_list_updated,
             u'lastcheckmodules': config[u'lastcheckmodules']
         }
@@ -709,9 +709,9 @@ class System(RaspIotModule):
         Return:
             dict: last update infos::
                 {
-                    updateavailable (string): available version, None if no update available
+                    raspiotupdateavailable (string): available version, None if no update available
+                    raspiotupdatechangelog (string): update changelog if new version available
                     lastcheckraspiot (int): last raspiot update check timestamp
-                    lastcheckmodules (int): last modules update check timestamp
                 }
         """
         #init
@@ -725,6 +725,8 @@ class System(RaspIotModule):
             if len(releases)==1:
                 #get latest version available
                 version = github.get_release_version(releases[0])
+                update_changelog = github.get_release_changelog(releases[0])
+
                 self.logger.debug('Compare version: (online)%s!=(installed)%s' % (version, VERSION))
                 if version!=VERSION:
                     #new version available, trigger update
@@ -753,6 +755,10 @@ class System(RaspIotModule):
                         self.logger.debug(u'raspiot_update: %s' % self.__raspiot_update)
                         update_available = version
 
+                else:
+                    #already up-to-date
+                    update_changelog = u''
+
             else:
                 #no release found
                 self.logger.warning(u'No release found during check')
@@ -765,14 +771,12 @@ class System(RaspIotModule):
         #update config
         config = {
             u'raspiotupdateavailable': update_available,
+            u'raspiotupdatechangelog': update_changelog,
             u'lastcheckraspiot': int(time.time())
         }
         self._update_config(config)
 
-        return {
-            u'updateavailable': update_available,
-            u'lastcheckraspiot': config[u'lastcheckraspiot']
-        }
+        return config
 
     def __update_raspiot_callback(self, status):
         """

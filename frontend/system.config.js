@@ -32,6 +32,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         self.raspiotUpdateEnabled = false;
         self.modulesUpdateEnabled = false;
         self.raspiotUpdateAvailable = null;
+        self.raspiotUpdateChangelog = null;
         self.modulesUpdateAvailable = false;
         self.lastRaspiotUpdate = null;
         self.lastCheckRaspiot = null;
@@ -84,7 +85,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             systemService.checkRaspiotUpdates()
                 .then(function(resp) {
                      
-                    if( resp.data.updateavailable===false )
+                    if( resp.data.raspiotupdateavailable===null )
                     {
                         message = 'No update available';
                     }
@@ -120,7 +121,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
                     self.lastCheckModules = resp.data.lastcheckmodules;
 
                     //user message
-                    if( resp.data.updateavailable===true )
+                    if( resp.data.modulesupdateavailable===true )
                     {
                         //priority to installed module updates
                         message = 'Update(s) available. Please check installed modules list';
@@ -154,11 +155,27 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         /**
          * Show update logs
          */
-        self.showLogs = function(ev) {
+        self.showLogsDialog = function(ev) {
             $mdDialog.show({
                 controller: function() { return self; },
                 controllerAs: 'updateLogsCtl',
-                templateUrl: 'logs.html',
+                templateUrl: 'logs.dialog.html',
+                parent: angular.element(document.body),
+                targetEvent: ev,
+                clickOutsideToClose: true,
+                fullscreen: true
+            })
+            .then(function() {}, function() {});
+        };
+
+        /**
+         * Show update dialog
+         */
+        self.showUpdateDialog = function(ev) {
+            $mdDialog.show({
+                controller: function() { return self; },
+                controllerAs: 'updateCtl',
+                templateUrl: 'update.dialog.html',
                 parent: angular.element(document.body),
                 targetEvent: ev,
                 clickOutsideToClose: true,
@@ -490,6 +507,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             self.raspiotUpdateEnabled = config.raspiotupdateenabled;
             self.modulesUpdateEnabled = config.modulesupdateenabled;
             self.raspiotUpdateAvailable = config.raspiotupdateavailable;
+            self.raspiotUpdateChangelog = config.raspiotpudatechangelog;
             self.modulesUpdateAvailable = config.modulesupdateavailable;
             self.lastRaspiotUpdate = config.lastraspiotupdate;
             self.lastRaspiotUpdate.stdoutStr = config.lastraspiotupdate.stdout.join('\n');
