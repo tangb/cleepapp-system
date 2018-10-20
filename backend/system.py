@@ -721,7 +721,7 @@ class System(RaspIotModule):
 
         try:
             github = Github()
-            releases = github.get_releases(self.RASPIOT_GITHUB_OWNER, self.RASPIOT_GITHUB_REPO, only_latest=True)
+            releases = github.get_releases(self.RASPIOT_GITHUB_OWNER, self.RASPIOT_GITHUB_REPO, only_latest=True, only_released=True)
             if len(releases)==1:
                 #get latest version available
                 version = github.get_release_version(releases[0])
