@@ -35,7 +35,7 @@ class System(RaspIotModule):
     Helps controlling the system device (halt, reboot) and monitoring it
     """
     MODULE_AUTHOR = u'Cleep'
-    MODULE_VERSION = u'1.0.1'
+    MODULE_VERSION = u'1.0.2'
     MODULE_CATEGORY = u'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
