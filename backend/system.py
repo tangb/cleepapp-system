@@ -118,6 +118,7 @@ class System(RaspIotModule):
         self.raspiot_update_pending = False
         self.raspiot_backup = RaspiotBackup(self.cleep_filesystem, self.crash_report)
         self.raspiot_backup_delay = None
+        self.raspiot_conf = RaspiotConf(self.cleep_filesystem)
 
         #events
         self.systemSystemHalt = self._get_event(u'system.system.halt')
@@ -219,7 +220,6 @@ class System(RaspIotModule):
             dict: configuration
         """
         config = self._get_config()
-        raspiot = RaspiotConf(self.cleep_filesystem)
 
         out = {}
         out[u'monitoring'] = self.get_monitoring()
@@ -230,8 +230,8 @@ class System(RaspIotModule):
         out[u'version'] = VERSION
         out[u'eventsnotrendered'] = self.get_events_not_rendered()
         out[u'debug'] = {
-            u'system': raspiot.is_system_debugged(),
-            u'trace': raspiot.is_trace_enabled()
+            u'system': self.raspiot_conf.is_system_debugged(),
+            u'trace': self.raspiot_conf.is_trace_enabled()
         }
         out[u'raspiotbackupdelay'] = self.raspiot_backup_delay
 
@@ -399,18 +399,16 @@ class System(RaspIotModule):
         Return:
             dict: module infos
         """
-        #get modules.json content
-        modules_json = self.modules_json.get_json()
-
-        #check module presence in modules.json file
-        if module not in modules_json[u'list']:
+        #get infos from inventory
+        resp = self.send_command('get_module', u'inventory', {'module': module})
+        if resp[u'error']:
+            self.logger.error(u'Unable to get module infos: %s' % resp[u'message'])
+            raise CommandError('Unable to install module "%s"' % module)
+        elif resp['data'] is None:
             self.logger.error(u'Module "%s" not found in modules list' % module)
-            raise CommandError(u'Module "%s" not found in modules list' % module)
+            raise CommandError(u'Module "%s" not found in installable modules list' % module)
 
-        module_infos = modules_json[u'list'][module]
-        self.logger.debug('Module infos: %s' % module_infos)
-
-        return module_infos
+        return resp[u'data']
 
     def __update_last_module_processing(self, status):
         """
@@ -461,8 +459,7 @@ class System(RaspIotModule):
             self.__need_restart = True
 
             #update raspiot.conf
-            raspiot = RaspiotConf(self.cleep_filesystem)
-            raspiot.install_module(status[u'module'])
+            self.raspiot_conf.install_module(status[u'module'])
 
     def install_module(self, module):
         """
@@ -482,7 +479,7 @@ class System(RaspIotModule):
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module infos: %s' % infos)
 
-        #launch installation (non blocking)
+        #installable module, launch its installation (non blocking)
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_install_callback)
         install.install_module(module, infos)
 
@@ -508,8 +505,7 @@ class System(RaspIotModule):
             self.__need_restart = True
 
             #update raspiot.conf
-            raspiot = RaspiotConf(self.cleep_filesystem)
-            raspiot.uninstall_module(status[u'module'])
+            self.raspiot_conf.uninstall_module(status[u'module'])
 
     def uninstall_module(self, module, force=False):
         """
@@ -526,9 +522,13 @@ class System(RaspIotModule):
         if module is None or len(module)==0:
             raise MissingParameter(u'Parameter "module" is missing')
 
-        #launch uninstallation
+        #get module infos
+        infos = self.__get_module_infos(module)
+        self.logger.debug(u'Module infos: %s' % infos)
+
+        #uninstallable module, launch uninstall process (non blocking)
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
-        install.uninstall_module(module, force)
+        install.uninstall_module(module, infos, force)
 
         return True
 
@@ -552,8 +552,7 @@ class System(RaspIotModule):
             self.__need_restart = True
 
             #update raspiot.conf adding module to updated ones
-            raspiot = RaspiotConf(self.cleep_filesystem)
-            raspiot.update_module(status[u'module'])
+            self.raspiot_conf.update_module(status[u'module'])
 
     def update_module(self, module):
         """
@@ -571,6 +570,7 @@ class System(RaspIotModule):
 
         #get module infos
         infos = self.__get_module_infos(module)
+        self.logger.debug(u'Module infos: %s' % infos)
 
         #launch module update
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_update_callback)
@@ -1206,11 +1206,10 @@ class System(RaspIotModule):
             raise MissingParameter(u'Parameter "trace" is missing')
 
         #save log level in conf file
-        conf = RaspiotConf(self.cleep_filesystem)
         if trace:
-            conf.enable_trace()
+            self.raspiot_conf.enable_trace()
         else:
-            conf.disable_trace()
+            self.raspiot_conf.disable_trace()
 
         #send event raspiot needs to be restarted
         self.__need_restart = True
@@ -1226,17 +1225,16 @@ class System(RaspIotModule):
         if debug is None:
             raise MissingParameter(u'Parameter "debug" is missing')
 
-        conf = RaspiotConf(self.cleep_filesystem)
         if debug:
             self.events_factory.logger.setLevel(logging.DEBUG)
             self.cleep_filesystem.logger.setLevel(logging.DEBUG)
 
-            conf.enable_system_debug()
+            self.raspiot_conf.enable_system_debug()
         else:
             self.events_factory.logger.setLevel(logging.INFO)
             self.cleep_filesystem.logger.setLevel(logging.INFO)
 
-            conf.disable_system_debug()
+            self.raspiot_conf.disable_system_debug()
 
     def set_module_debug(self, module, debug):
         """
@@ -1252,11 +1250,10 @@ class System(RaspIotModule):
             raise MissingParameter(u'Parameter "debug" is missing')
 
         #save log level in conf file
-        conf = RaspiotConf(self.cleep_filesystem)
         if debug:
-            conf.enable_module_debug(module)
+            self.raspiot_conf.enable_module_debug(module)
         else:
-            conf.disable_module_debug(module)
+            self.raspiot_conf.disable_module_debug(module)
 
         #set debug on module
         if module==u'rpc':

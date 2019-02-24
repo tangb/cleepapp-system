@@ -340,7 +340,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		if( params.status===1 )
 		{
 			//processing status
-            self.updateModuleProcessingStatus(params.module, true);
+            self.updateModuleProcessingStatus(params.module, 'install');
 		}
 		else if( params.status===2 )
 		{
@@ -348,7 +348,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update processing status to false
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     
                     //user message
                     toast.error('Error during app "' + params.module + '" install. See logs for details.');
@@ -360,7 +360,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update pending+processing status
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     self.updateModulePendingStatus(params.module, true);
                     
                     //user message
@@ -370,7 +370,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         else if( params.status===4 )
         {
             //module installation canceled (not supported yet)
-            self.updateModuleProcessingStatus(params.module, false);
+            self.updateModuleProcessingStatus(params.module, null);
         }
     });
 
@@ -387,7 +387,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		if( params.status===1 )
 		{
 			//processing status
-            self.updateModuleProcessingStatus(params.module, true);
+            self.updateModuleProcessingStatus(params.module, 'update');
 		}
 		else if( params.status===2 )
 		{
@@ -395,7 +395,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update processing status to false
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     
                     //user message
                     toast.error('Error during app "' + params.module + '" update. See logs for details.');
@@ -407,7 +407,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update pending+processing status
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     self.updateModulePendingStatus(params.module, true);
                     
                     //user message
@@ -417,7 +417,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         else if( params.status===4 )
         {
             //module update canceled (not supported yet)
-            self.updateModuleProcessingStatus(params.module, false);
+            self.updateModuleProcessingStatus(params.module, null);
         }
     });
 
@@ -434,7 +434,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		if( params.status===1 )
 		{
 			//processing status
-            self.updateModuleProcessingStatus(params.module, true);
+            self.updateModuleProcessingStatus(params.module, 'uninstall');
 		}
 		else if( params.status===2 )
 		{
@@ -442,7 +442,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update processing status to false
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     
                     //user message
                     toast.error('Error during app "' + params.module + '" uninstall. See logs for details.');
@@ -454,7 +454,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
             raspiotService.loadConfig()
                 .then(function() {
                     //update pending+processing status
-                    self.updateModuleProcessingStatus(params.module, false);
+                    self.updateModuleProcessingStatus(params.module, null);
                     self.updateModulePendingStatus(params.module, true);
                     
                     //user message
@@ -467,3 +467,4 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     
 var RaspIot = angular.module('RaspIot');
 RaspIot.service('systemService', ['$rootScope', 'rpcService', 'raspiotService', 'toastService', 'appToolbarService', systemService]);
+
