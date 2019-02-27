@@ -879,7 +879,7 @@ class System(RaspIotModule):
             #user trigger raspiot update and there is no update infos. Check again
             self.logger.debug('Raspiot update trigger while there is no update infos, check again')
             res = self.check_raspiot_updates()
-            if not res[u'updateavailable']:
+            if not res[u'raspiotupdateavailable']:
                 #there is really no update available
                 raise CommandInfo(u'No raspiot update available')
             else:
@@ -890,7 +890,7 @@ class System(RaspIotModule):
         checksum_url = self.__raspiot_update[u'checksum'][u'url']
         self.logger.debug('Update raspiot, package url: %s' % package_url)
         self.logger.debug('Update raspiot, checksum url: %s' % checksum_url)
-        update = InstallRaspiot(package_url, checksum_url, self.__update_raspiot_callback, self.cleep_filesystem)
+        update = InstallRaspiot(package_url, checksum_url, self.__update_raspiot_callback, self.cleep_filesystem, self.crash_report)
         update.start()
 
         return True
