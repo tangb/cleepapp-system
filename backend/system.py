@@ -73,7 +73,8 @@ class System(RaspIotModule):
             u'stderr': []
         },
         u'lastmodulesprocessing' : {},
-        u'raspiotbackupdelay': 15
+        u'raspiotbackupdelay': 15,
+        u'needreboot': False
     }
 
     MONITORING_CPU_DELAY = 60.0 #1 minute
@@ -107,7 +108,6 @@ class System(RaspIotModule):
         self.__monitoring_disks_task = None
         self.__process = None
         self.__need_restart = False
-        self.__need_reboot = False
         self.modules_json = ModulesJson(self.cleep_filesystem)
         self.__updating_modules = []
         self.__modules = {}
@@ -225,7 +225,7 @@ class System(RaspIotModule):
         out[u'monitoring'] = self.get_monitoring()
         out[u'uptime'] = self.get_uptime()
         out[u'needrestart'] = self.__need_restart
-        out[u'needreboot'] = self.__need_reboot
+        out[u'needreboot'] = config[u'needreboot']
         out[u'crashreport'] = config[u'crashreport']
         out[u'version'] = VERSION
         out[u'eventsnotrendered'] = self.get_events_not_rendered()
@@ -280,7 +280,7 @@ class System(RaspIotModule):
 
         #handle reboot event
         elif event[u'event'].endswith('system.needreboot'):
-            self.__need_reboot = True
+            self._set_config_field(u'needreboot', True)
 
         if event[u'event']==u'system.time.now':
             #update
@@ -865,10 +865,8 @@ class System(RaspIotModule):
     
         #handle end of successful process to trigger restart
         if status[u'status']==InstallRaspiot.STATUS_UPDATED:
-            #need to reboot
-            #TODO reboot automatically instead ?
-            self.raspiot_update_pending = True
-            self.__need_reboot = True
+            #need to restart
+            self.restart(delay=1.0)
 
     def update_raspiot(self):
         """
