@@ -86,7 +86,7 @@ class System(RaspIotModule):
     THRESHOLD_DISK_EXTERNAL = 90.0
 
     RASPIOT_GITHUB_OWNER = u'tangb'
-    RASPIOT_GITHUB_REPO = u'raspiot'
+    RASPIOT_GITHUB_REPO = u'cleep'
 
     def __init__(self, bootstrap, debug_enabled):
         """
@@ -121,18 +121,18 @@ class System(RaspIotModule):
         self.raspiot_conf = RaspiotConf(self.cleep_filesystem)
 
         #events
-        self.systemSystemHalt = self._get_event(u'system.system.halt')
-        self.systemSystemReboot = self._get_event(u'system.system.reboot')
-        self.systemSystemRestart = self._get_event(u'system.system.restart')
-        self.systemNeedRestart = self._get_event(u'system.system.needrestart')
-        self.systemMonitoringCpu = self._get_event(u'system.monitoring.cpu')
-        self.systemMonitoringMemory = self._get_event(u'system.monitoring.memory')
-        self.systemAlertMemory = self._get_event(u'system.alert.memory')
-        self.systemAlertDisk = self._get_event(u'system.alert.disk')
-        self.systemModuleInstall = self._get_event(u'system.module.install')
-        self.systemModuleUninstall = self._get_event(u'system.module.uninstall')
-        self.systemModuleUpdate = self._get_event(u'system.module.update')
-        self.systemRaspiotUpdate = self._get_event(u'system.raspiot.update')
+        self.system_system_halt = self._get_event(u'system.system.halt')
+        self.system_system_reboot = self._get_event(u'system.system.reboot')
+        self.system_system_restart = self._get_event(u'system.system.restart')
+        self.system_need_restart = self._get_event(u'system.system.needrestart')
+        self.system_monitoring_cpu = self._get_event(u'system.monitoring.cpu')
+        self.system_monitoring_memory = self._get_event(u'system.monitoring.memory')
+        self.system_alert_memory = self._get_event(u'system.alert.memory')
+        self.system_alert_disk = self._get_event(u'system.alert.disk')
+        self.system_module_install = self._get_event(u'system.module.install')
+        self.system_module_uninstall = self._get_event(u'system.module.uninstall')
+        self.system_module_update = self._get_event(u'system.module.update')
+        self.system_raspiot_update = self._get_event(u'system.raspiot.update')
 
     def _configure(self):
         """
@@ -355,7 +355,7 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.systemSystemReboot.send()
+        self.system_system_reboot.send()
 
         #and reboot system
         console = Console()
@@ -369,7 +369,7 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.systemSystemHalt.send()
+        self.system_system_halt.send()
 
         #and reboot system
         console = Console()
@@ -383,11 +383,11 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.systemSystemRestart.send()
+        self.system_system_restart.send()
 
         #and restart raspiot
         console = Console()
-        console.command_delayed(u'/etc/raspiot/raspiot_helper.sh restart', delay)
+        console.command_delayed(u'/etc/raspiot/raspiothelper.sh restart', delay)
 
     def __get_module_infos(self, module):
         """
@@ -400,7 +400,7 @@ class System(RaspIotModule):
             dict: module infos
         """
         #get infos from inventory
-        resp = self.send_command('get_module', u'inventory', {'module': module})
+        resp = self.send_command('get_module_infos', u'inventory', {'module': module})
         if resp[u'error']:
             self.logger.error(u'Unable to get module infos: %s' % resp[u'message'])
             raise CommandError('Unable to install module "%s"' % module)
@@ -448,7 +448,7 @@ class System(RaspIotModule):
         self.logger.debug(u'Module install callback status: %s' % status)
         
         #send process status
-        self.systemModuleInstall.send(params=status)
+        self.system_module_install.send(params=status)
 
         #save last module processing
         self.__update_last_module_processing(status)
@@ -477,9 +477,13 @@ class System(RaspIotModule):
 
         #get module infos
         infos = self.__get_module_infos(module)
-        self.logger.debug(u'Module infos: %s' % infos)
+        self.logger.debug(u'Module to install infos: %s' % infos)
 
-        #installable module, launch its installation (non blocking)
+        #install module dependencies
+        for dep in infos[u'deps']:
+            self.install_module(dep)
+
+        #launch module installation (non blocking)
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_install_callback)
         install.install_module(module, infos)
 
@@ -495,7 +499,7 @@ class System(RaspIotModule):
         self.logger.debug(u'Module uninstall callback status: %s' % status)
         
         #send process status to ui
-        self.systemModuleUninstall.send(params=status)
+        self.system_module_uninstall.send(params=status)
 
         #save last module processing
         self.__update_last_module_processing(status)
@@ -524,13 +528,37 @@ class System(RaspIotModule):
 
         #get module infos
         infos = self.__get_module_infos(module)
-        self.logger.debug(u'Module infos: %s' % infos)
+        self.logger.debug(u'Module to uninstall infos: %s' % infos)
 
-        #uninstallable module, launch uninstall process (non blocking)
-        install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
-        install.uninstall_module(module, infos, force)
+        #resolve module dependencies
+        modules_to_uninstall = self.__dependencies_to_uninstall(module)
+        self.logger.debug(u'List of modules supposed to be uninstalled with %s: %s' % (module, modules_to_uninstall))
+        for module_to_uninstall in modules_to_uninstall[:]:
+            dep_infos = self.__get_module_infos(module_to_uninstall)
+            for dependsof in dep_infos[u'dependsof']:
+                if dependsof not in modules_to_uninstall:
+                    #do not uninstall this module because it has other dependency
+                    self.logger.debug('Do not remove module "%s" which is still needed by "%s" module' % (module_to_uninstall, dependsof))
+                    modules_to_uninstall.remove(module_to_uninstall)
+                    break
+            
+        #uninstall module + dependencies
+        self.logger.info(u'Module %s uninstall will remove %s' % (module, modules_to_uninstall))
+        for module_name in modules_to_uninstall:
+            install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
+            install.uninstall_module(module_name, infos, force)
 
         return True
+
+    def __dependencies_to_uninstall(self, dep):
+        deps_to_uninstall = [dep]
+
+        infos = self.__get_module_infos(dep)
+        for dep in infos[u'deps']:
+            deps = self.__dependencies_to_uninstall(dep)
+            deps_to_uninstall = list(set(deps) | set(deps_to_uninstall))
+
+        return deps_to_uninstall
 
     def __module_update_callback(self, status):
         """
@@ -542,7 +570,7 @@ class System(RaspIotModule):
         self.logger.debug(u'Module update callback status: %s' % status)
         
         #send process status to ui
-        self.systemModuleUpdate.send(params=status)
+        self.system_module_update.send(params=status)
 
         #save last module processing
         self.__update_last_module_processing(status)
@@ -570,7 +598,10 @@ class System(RaspIotModule):
 
         #get module infos
         infos = self.__get_module_infos(module)
-        self.logger.debug(u'Module infos: %s' % infos)
+        self.logger.debug(u'Module to update infos: %s' % infos)
+
+        #update module dependencies
+        #TODO handle dependencies updates
 
         #launch module update
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_update_callback)
@@ -788,7 +819,7 @@ class System(RaspIotModule):
         self.logger.debug(u'Raspiot update callback status: %s' % status)
 
         #send process status (only status)
-        self.systemRaspiotUpdate.send(params={u'status':status[u'status']})
+        self.system_raspiot_update.send(params={u'status':status[u'status']})
 
         #save final status when update terminated (successfully or not)
         if status[u'status']>=InstallRaspiot.STATUS_UPDATED:
@@ -984,7 +1015,7 @@ class System(RaspIotModule):
 
         #send event if monitoring activated
         if config[u'monitoring']:
-            self.systemMonitoringCpu.send(params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid)
+            self.system_monitoring_cpu.send(params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid)
 
     def __monitoring_memory_thread(self):
         """
@@ -997,11 +1028,11 @@ class System(RaspIotModule):
         #detect memory leak
         percent = (float(memory[u'total'])-float(memory[u'available']))/float(memory[u'total'])*100.0
         if percent>=self.THRESHOLD_MEMORY:
-            self.systemAlertMemory.send(params={u'percent':percent, u'threshold':self.THRESHOLD_MEMORY})
+            self.system_alert_memory.send(params={u'percent':percent, u'threshold':self.THRESHOLD_MEMORY})
 
         #send event if monitoring activated
         if config[u'monitoring']:
-            self.systemMonitoringMemory.send(params=memory, device_id=self.__monitor_memory_uuid)
+            self.system_monitoring_memory.send(params=memory, device_id=self.__monitor_memory_uuid)
 
     def __monitoring_disks_thread(self):
         """
@@ -1012,10 +1043,10 @@ class System(RaspIotModule):
         for disk in disks:
             if disk[u'mounted']:
                 if disk[u'mountpoint']==u'/' and disk[u'percent']>=self.THRESHOLD_DISK_SYSTEM:
-                    self.systemAlertDisk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DISK_SYSTEM, u'mountpoint':disk[u'mountpoint']})
+                    self.system_alert_disk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DISK_SYSTEM, u'mountpoint':disk[u'mountpoint']})
 
                 elif disk[u'mountpoint'] not in (u'/', u'/boot') and disk[u'percent']>=self.THRESHOLD_DISK_EXTERNAL:
-                    self.systemAlertDisk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DIST_EXTERNAL, u'mountpoint':disk[u'mountpoint']})
+                    self.system_alert_disk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DIST_EXTERNAL, u'mountpoint':disk[u'mountpoint']})
 
     def get_filesystem_infos(self):
         """
@@ -1211,7 +1242,7 @@ class System(RaspIotModule):
 
         #send event raspiot needs to be restarted
         self.__need_restart = True
-        self.systemNeedRestart.send()
+        self.system_need_restart.send()
 
     def set_system_debug(self, debug):
         """
