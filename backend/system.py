@@ -282,7 +282,7 @@ class System(RaspIotModule):
         elif event[u'event'].endswith('system.needreboot'):
             self._set_config_field(u'needreboot', True)
 
-        if event[u'event']==u'system.time.now':
+        if event[u'event']==u'parameters.time.now':
             #update
             if event[u'params'][u'hour']==12 and event[u'params'][u'minute']==0:
                 #check updates at noon
