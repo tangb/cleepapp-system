@@ -747,6 +747,7 @@ class System(RaspIotModule):
         """
         #init
         update_available = None
+        update_changelog = u''
         self.__raspiot_update[u'package'] = None
         self.__raspiot_update[u'checksum'] = None
 
