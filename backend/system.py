@@ -319,11 +319,7 @@ class System(RaspIotModule):
                 }
         """
         config = self._get_config()
-
-        if module in config[u'lastmodulesprocessing']:
-            return config[u'lastmodulesprocessing'][module]
-
-        return None
+        return config[u'lastmodulesprocessing'][module] if module in config[u'lastmodulesprocessing'] else None
 
     def set_monitoring(self, monitoring):
         """
