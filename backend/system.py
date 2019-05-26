@@ -704,17 +704,20 @@ class System(RaspIotModule):
         #check for modules updates available
         update_available = False
         for module in modules:
-            current_version = modules[module][u'version']
-            if module in modules_json[u'list']:
-                new_version = modules_json[u'list'][module][u'version']
-                if Tools.compare_versions(current_version, new_version):
-                    #new version available for current module
-                    self.logger.info('New version available for module "%s" (%s->%s)' % (module, current_version, new_version))
-                    modules[module][u'updatable'] = True
-                    update_available = True
-
-                else:
-                    self.logger.debug('No new version available for module "%s" (%s->%s)' % (module, current_version, new_version))
+            try:
+                current_version = modules[module][u'version']
+                if module in modules_json[u'list']:
+                    new_version = modules_json[u'list'][module][u'version']
+                    if Tools.compare_versions(current_version, new_version):
+                        #new version available for current module
+                        self.logger.info('New version available for module "%s" (%s->%s)' % (module, current_version, new_version))
+                        modules[module][u'updatable'] = True
+                        update_available = True
+    
+                    else:
+                        self.logger.debug('No new version available for module "%s" (%s->%s)' % (module, current_version, new_version))
+            except:
+                self.logger.exception(u'Invalid "%s" module description in modules.json' % module)
 
         #update config
         config = {
