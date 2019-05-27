@@ -2,7 +2,7 @@
  * System config directive
  * Handle system configuration
  */
-var systemConfigDirective = function($filter, $timeout, $q, toast, systemService, raspiotService, confirm, $mdDialog)
+var systemConfigDirective = function($filter, $timeout, $q, toast, systemService, raspiotService, confirm, $mdDialog, $location)
 {
     var systemController = ['$scope', function($scope)
     {
@@ -522,6 +522,13 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
          */
         self.init = function()
         {
+            //get preselected tab index
+            if( $location.search().tab )
+            {
+                console.log('tab = ', $location.search())
+                self.tabIndex = $location.search().tab;
+            }
+
             //init
             $q.all([raspiotService.getEvents(), raspiotService.getRenderers()])
                 .then(function(resps) {
@@ -559,5 +566,5 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
 };
 
 var RaspIot = angular.module('RaspIot');
-RaspIot.directive('systemConfigDirective', ['$filter', '$timeout', '$q', 'toastService', 'systemService', 'raspiotService', 'confirmService', '$mdDialog', systemConfigDirective]);
+RaspIot.directive('systemConfigDirective', ['$filter', '$timeout', '$q', 'toastService', 'systemService', 'raspiotService', 'confirmService', '$mdDialog', '$location', systemConfigDirective]);
 

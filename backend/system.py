@@ -119,6 +119,7 @@ class System(RaspIotModule):
         self.raspiot_backup = RaspiotBackup(self.cleep_filesystem, self.crash_report)
         self.raspiot_backup_delay = None
         self.raspiot_conf = RaspiotConf(self.cleep_filesystem)
+        self.drivers = bootstrap[u'drivers']
 
         #events
         self.system_system_halt = self._get_event(u'system.system.halt')
@@ -133,6 +134,8 @@ class System(RaspIotModule):
         self.system_module_uninstall = self._get_event(u'system.module.uninstall')
         self.system_module_update = self._get_event(u'system.module.update')
         self.system_raspiot_update = self._get_event(u'system.raspiot.update')
+        self.system_driver_install = self._get_event(u'system.driver.install')
+        self.system_driver_uninstall = self._get_event(u'system.driver.uninstall')
 
     def _configure(self):
         """
@@ -1422,4 +1425,122 @@ class System(RaspIotModule):
             self.raspiot_backup_delay = delay
 
         return res
+
+    def _install_driver_terminated(self, driver_type, driver_name, success, message):
+        """
+        Callback when driver is installed
+
+        Args:
+            driver_type (string): driver type
+            driver_name (string): driver name
+            success (bool): True if install was successful, False otherwise
+            message (string): error message
+        """
+        #send event
+        self.system_driver_install.send({
+            u'drivertype': driver_type,
+            u'drivername': driver_name,
+            u'installing': False,
+            u'success': success,
+            u'message': message,
+        })
+
+    def install_driver(self, driver_type, driver_name, force=False):
+        """
+        Install specified driver
+
+        Args:
+            driver_type (string): driver type
+            driver_name (string): driver name
+            force (bool): force install (repair)
+
+        Raises:
+            MissingParameter: if a parameter is missing
+            InvalidParameter: if driver was not found
+            CommandError: if command failed
+        """
+        #check parameters
+        if driver_type is None or len(driver_type)==0:
+            raise MissingParameter(u'Parameter "driver_type" is missing')
+        if driver_name is None or len(driver_name)==0:
+            raise MissingParameter(u'Parameter "driver_name" is missing')
+
+        #get driver
+        driver = self.drivers.get_driver(driver_type, driver_name)
+        if not driver:
+            raise InvalidParameter(u'No driver found for specified parameters')
+
+        if not force and driver.is_installed():
+            raise CommandError(u'Driver is already installed')
+
+        #launch installation (non blocking) and send event
+        driver.install(self._install_driver_terminated)
+        self.system_driver_install.send({
+            u'drivertype': driver_type,
+            u'drivername': driver_name,
+            u'installing': True,
+            u'success': None,
+            u'message': None,
+        })
+
+        return True
+
+    def _uninstall_driver_terminated(self, driver_type, driver_name, success, message):
+        """
+        Callback when driver is uninstalled
+
+        Args:
+            driver_type (string): driver type
+            driver_name (string): driver name
+            success (bool): True if install was successful, False otherwise
+            message (string): error message
+        """
+        #send event
+        self.system_driver_uninstall.send({
+            u'drivertype': driver_type,
+            u'drivername': driver_name,
+            u'uninstalling': False,
+            u'success': success,
+            u'message': message,
+        })
+
+    def uninstall_driver(self, driver_type, driver_name):
+        """
+        Uninstall specified driver
+
+        Args:
+            driver_type (string): driver type
+            driver_name (string): driver name
+
+        Raises:
+            MissingParameter: if a parameter is missing
+            InvalidParameter: if driver was not found
+            CommandError: if command failed
+        """
+        #check parameters
+        if driver_type is None or len(driver_type)==0:
+            raise MissingParameter(u'Parameter "driver_type" is missing')
+        if driver_name is None or len(driver_name)==0:
+            raise MissingParameter(u'Parameter "driver_name" is missing')
+
+        #get driver
+        driver = self.drivers.get_driver(driver_type, driver_name)
+        if not driver:
+            raise InvalidParameter(u'No driver found for specified parameters')
+
+        if not driver.is_installed():
+            raise CommandError(u'Driver is not installed')
+
+        #launch uninstallation (non blocking) and send event
+        driver.uninstall(self._uninstall_driver_terminated)
+        self.system_driver_uninstall.send({
+            u'drivertype': driver_type,
+            u'drivername': driver_name,
+            u'uninstalling': True,
+            u'success': None,
+            u'message': None,
+        })
+
+        return True
+
 

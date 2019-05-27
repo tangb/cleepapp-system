@@ -5,6 +5,7 @@
         <md-nav-item md-nav-click="goto('update')" name="update">Update</md-nav-item>
         <md-nav-item md-nav-click="goto('backup')" name="backup">Backup</md-nav-item>
         <md-nav-item md-nav-click="goto('renderings')" name="renderings">Renderings</md-nav-item>
+        <md-nav-item md-nav-click="goto('drivers')" name="drivers">Drivers</md-nav-item>
         <md-nav-item md-nav-click="goto('advanced')" name="advanced">Advanced</md-nav-item>
         <md-nav-item md-nav-click="goto('troubleshoot')" name="troubleshoot">Troubleshoot</md-nav-item>
     </md-nav-bar>
@@ -162,6 +163,11 @@
             </md-list-item>
 
         </md-list>
+    </div>
+
+    <!-- drivers -->
+    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='drivers'">
+        <drivers></drivers>
     </div>
 
     <!-- advanced -->
