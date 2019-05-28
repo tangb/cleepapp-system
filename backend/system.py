@@ -1515,6 +1515,10 @@ class System(RaspIotModule):
             u'message': message,
         })
 
+        #reboot device if uninstall succeed
+        if success:
+            self.reboot_system()
+
     def uninstall_driver(self, driver_type, driver_name):
         """
         Uninstall specified driver
