@@ -1,8 +1,8 @@
 {
     "icon": "heart-pulse",
     "global": {
-        "js": ["monitor.widget.js", "system.service.js"],
-        "html": ["monitor.widget.html", "monitorDialog.widget.html"]
+        "js": ["monitor.widget.js", "system.service.js", "drivers/drivers.js"],
+        "html": ["monitor.widget.html", "monitorDialog.widget.html", "drivers/drivers.html"]
     },
     "config": {
         "js": ["system.config.js"],
