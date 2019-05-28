@@ -33,5 +33,8 @@ class SystemSystemRebootEvent(Event):
         Return:
             bool: True if params are valid, False otherwise
         """
-        return True
+        keys = [
+            u'delay'
+        ]
+        return all(key in keys for key in params.keys())
 

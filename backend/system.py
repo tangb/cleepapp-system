@@ -321,6 +321,7 @@ class System(RaspIotModule):
                     time (int): processing time
                 }
         """
+
         config = self._get_config()
         return config[u'lastmodulesprocessing'][module] if module in config[u'lastmodulesprocessing'] else None
 
@@ -354,7 +355,9 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.system_system_reboot.send()
+        self.system_system_reboot.send({
+            u'delay': delay
+        })
 
         #and reboot system
         console = Console()
@@ -368,7 +371,9 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.system_system_halt.send()
+        self.system_system_halt.send({
+            u'delay': delay
+        })
 
         #and reboot system
         console = Console()
@@ -382,7 +387,9 @@ class System(RaspIotModule):
         self.backup_raspiot_config()
 
         #send event
-        self.system_system_restart.send()
+        self.system_system_restart.send({
+            u'delay': delay
+        })
 
         #and restart raspiot
         console = Console()
@@ -1444,6 +1451,10 @@ class System(RaspIotModule):
             u'success': success,
             u'message': message,
         })
+
+        #reboot device if install succeed
+        if success:
+            self.reboot_system()
 
     def install_driver(self, driver_type, driver_name, force=False):
         """
