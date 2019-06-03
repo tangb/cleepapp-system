@@ -4,10 +4,11 @@
  * You can display all drivers or filter them by type or name
  *
  * Directive example:
- * <drivers types="..." names="..."></drivers>
+ * <drivers types="'...'" names="'...'" header="'...'"></drivers>
  * With:
  *  - types (string): comma separated list of types to filter on
  *  - names (string): comma separated list of names to filter on
+ *  - header (string): header title of list (default "Drivers"). Set empty string to remove header
  */
 var driversDirective = function($rootScope, rpcService, raspiotService, confirmService, toastService) {
 
@@ -16,6 +17,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
         self.drivers = [];
         self.types = [];
         self.names = [];
+        self.header = '';
 
         /**
          * Init directive
@@ -25,13 +27,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
             //fill drivers according to specified filters
             raspiotService.getDrivers()
                 .then(function(drivers) {
-                    if( self.types.length>0 || self.names.length>0 )
-                    {
-                        drivers.filter(function(driver) {
-                            return (!(driver.drivertype in self.types) && !(driver.drivername in self.names)) ? true : false;
-                        });
-                    }
-                    self.drivers = drivers;
+                    self.setDrivers(drivers);
                 });
         };
 
@@ -40,6 +36,12 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
          */
         self.setDrivers = function(drivers)
         {
+            if( self.types.length>0 || self.names.length>0 )
+            {
+                drivers = drivers.filter(function(driver) {
+                    return !(self.types.indexOf(driver.drivertype)===-1 && self.names.indexOf(driver.drivername)===-1);
+                });
+            }
             self.drivers = drivers;
         };
 
@@ -47,7 +49,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
          * Install driver
          */
         self.install = function(driver) {
-            confirmService.open('Install driver', 'Confirm "'+driver.drivername+'" driver installation ?<br><br>After installation device will reboot.', 'Install', 'Cancel')
+            confirmService.open('Install driver', 'Confirm "'+driver.drivername+'" driver installation ?<br>Depending on things to install, driver installation may take several minutes.<br><br>After installation device will reboot.', 'Install', 'Cancel')
                 .then(function() {
                     rpcService.sendCommand('install_driver', 'system', {'driver_type': driver.drivertype, 'driver_name': driver.drivername});
                 });
@@ -122,6 +124,10 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
     var driversLink = function(scope, element, attrs, controller) {
         controller.types = scope.types ? scope.types.split(',') : [];
         controller.names = scope.names ? scope.names.split(',') : [];
+        console.log('==>', scope.header, scope);
+        controller.header = scope.header===undefined ? 'Drivers' : scope.header;
+
+        controller.init();
     };
 
     return {
@@ -130,7 +136,8 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
         replace: true,
         scope: {
             types: '=',
-            names: '='
+            names: '=',
+            header: '=',
         },
         controller: driversController,
         controllerAs: 'driversCtl',
