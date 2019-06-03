@@ -1443,14 +1443,17 @@ class System(RaspIotModule):
             success (bool): True if install was successful, False otherwise
             message (string): error message
         """
-        #send event
-        self.system_driver_install.send({
+        data = {
             u'drivertype': driver_type,
             u'drivername': driver_name,
             u'installing': False,
             u'success': success,
             u'message': message,
-        })
+        }
+        self.logger.debug(u'Driver install terminated: %s' % data)
+
+        #send event
+        self.system_driver_install.send(data)
 
         #reboot device if install succeed
         if success:
@@ -1485,7 +1488,7 @@ class System(RaspIotModule):
             raise CommandError(u'Driver is already installed')
 
         #launch installation (non blocking) and send event
-        driver.install(self._install_driver_terminated)
+        driver.install(self._install_driver_terminated, logger=self.logger)
         self.system_driver_install.send({
             u'drivertype': driver_type,
             u'drivername': driver_name,
@@ -1506,14 +1509,17 @@ class System(RaspIotModule):
             success (bool): True if install was successful, False otherwise
             message (string): error message
         """
-        #send event
-        self.system_driver_uninstall.send({
+        data = {
             u'drivertype': driver_type,
             u'drivername': driver_name,
             u'uninstalling': False,
             u'success': success,
             u'message': message,
-        })
+        }
+        self.logger.debug(u'Uninstall driver terminated: %s' % data)
+
+        #send event
+        self.system_driver_uninstall.send(data)
 
         #reboot device if uninstall succeed
         if success:
@@ -1547,7 +1553,7 @@ class System(RaspIotModule):
             raise CommandError(u'Driver is not installed')
 
         #launch uninstallation (non blocking) and send event
-        driver.uninstall(self._uninstall_driver_terminated)
+        driver.uninstall(self._uninstall_driver_terminated, logger=self.logger)
         self.system_driver_uninstall.send({
             u'drivertype': driver_type,
             u'drivername': driver_name,
