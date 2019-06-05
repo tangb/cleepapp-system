@@ -124,7 +124,6 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
     var driversLink = function(scope, element, attrs, controller) {
         controller.types = scope.types ? scope.types.split(',') : [];
         controller.names = scope.names ? scope.names.split(',') : [];
-        console.log('==>', scope.header, scope);
         controller.header = scope.header===undefined ? 'Drivers' : scope.header;
 
         controller.init();

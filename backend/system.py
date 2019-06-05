@@ -1461,7 +1461,8 @@ class System(RaspIotModule):
 
     def install_driver(self, driver_type, driver_name, force=False):
         """
-        Install specified driver
+        Install specified driver.
+        If install succeed, device will reboot after a delay
 
         Args:
             driver_type (string): driver type
@@ -1527,7 +1528,8 @@ class System(RaspIotModule):
 
     def uninstall_driver(self, driver_type, driver_name):
         """
-        Uninstall specified driver
+        Uninstall specified driver.
+        If uninstall succeed, device will reboot after a delay.
 
         Args:
             driver_type (string): driver type
