@@ -99,7 +99,7 @@ class System(RaspIotModule):
         RaspIotModule.__init__(self, bootstrap, debug_enabled)
 
         #members
-        self.events_factory = bootstrap[u'events_factory']
+        self.events_broker = bootstrap[u'events_broker']
         self.log_file = bootstrap[u'log_file']
         self.__monitor_cpu_uuid = None
         self.__monitor_memory_uuid = None
@@ -1265,12 +1265,12 @@ class System(RaspIotModule):
             raise MissingParameter(u'Parameter "debug" is missing')
 
         if debug:
-            self.events_factory.logger.setLevel(logging.DEBUG)
+            self.events_broker.logger.setLevel(logging.DEBUG)
             self.cleep_filesystem.logger.setLevel(logging.DEBUG)
 
             self.raspiot_conf.enable_system_debug()
         else:
-            self.events_factory.logger.setLevel(logging.INFO)
+            self.events_broker.logger.setLevel(logging.INFO)
             self.cleep_filesystem.logger.setLevel(logging.INFO)
 
             self.raspiot_conf.disable_system_debug()
@@ -1313,7 +1313,7 @@ class System(RaspIotModule):
         """
         Update events factory with list of events to not render
         """
-        self.events_factory.update_events_not_rendered(self.get_events_not_rendered())
+        self.events_broker.update_events_not_rendered(self.get_events_not_rendered())
 
     def set_event_not_rendered(self, renderer, event, disabled):
         """
