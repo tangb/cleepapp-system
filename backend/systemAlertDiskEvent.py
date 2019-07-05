@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from raspiot.events.event import Event
+from raspiot.libs.internals.event import Event
 
 class SystemAlertDiskEvent(Event):
     """
@@ -10,6 +10,7 @@ class SystemAlertDiskEvent(Event):
 
     EVENT_NAME = u'system.alert.disk'
     EVENT_SYSTEM = True
+    EVENT_PARAMS = [u'percent', u'threshold', u'mountpoint']
 
     def __init__(self, bus, formatters_broker, events_broker):
         """ 
@@ -21,16 +22,4 @@ class SystemAlertDiskEvent(Event):
             events_broker (EventsBroker): events broker instance
         """
         Event.__init__(self, bus, formatters_broker, events_broker)
-
-    def _check_params(self, params):
-        """
-        Check event parameters
-
-        Args:
-            params (dict): event parameters
-
-        Return:
-            bool: True if params are valid, False otherwise
-        """
-        return all(key in [u'percent', u'threshold', u'mountpoint', u''] for key in params.keys())
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from raspiot.events.event import Event
+from raspiot.libs.internals.event import Event
 
 class SystemSystemHaltEvent(Event):
     """
@@ -11,6 +11,7 @@ class SystemSystemHaltEvent(Event):
 
     EVENT_NAME = u'system.system.halt'
     EVENT_SYSTEM = True
+    EVENT_PARAMS = [u'delay']
 
     def __init__(self, bus, formatters_broker, events_broker):
         """ 
@@ -22,19 +23,4 @@ class SystemSystemHaltEvent(Event):
             events_broker (EventsBroker): events broker instance
         """
         Event.__init__(self, bus, formatters_broker, events_broker)
-
-    def _check_params(self, params):
-        """
-        Check event parameters
-
-        Args:
-            params (dict): event parameters
-
-        Return:
-            bool: True if params are valid, False otherwise
-        """
-        keys = [
-            u'delay'
-        ]
-        return all(key in keys for key in params.keys())
 
