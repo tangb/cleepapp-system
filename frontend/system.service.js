@@ -9,6 +9,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     self.modulesInstallStatus = {};
     self.restartButtonId = null;
     self.rebootButtonId = null;
+    self.monitoring = false;
     
     /**
      * Get filesystem infos
@@ -16,14 +17,6 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     self.getFilesystemInfos = function()
     {
         return rpcService.sendCommand('get_filesystem_infos', 'system', 30000);
-    };
-
-    /**
-     * Get network infos
-     */
-    self.getNetworkInfos = function()
-    {
-        return rpcService.sendCommand('get_network_infos', 'system', 30000);
     };
 
     /**
@@ -261,6 +254,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 {
                     self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot, 'md-accent');
                 }
+
+                //store monitoring flag to display or not monitor widget
+                self.monitoring = newConfig.config.monitoring;
             }
         }
     );
