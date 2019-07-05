@@ -943,7 +943,7 @@ class System(RaspIotModule):
                 {
                     'total': <total memory in bytes (int)>',
                     'available':<available memory in bytes (int)>,
-                    'available_hr':<human readble available memory (string)>,
+                    'availablehr':<human readble available memory (string)>,
                     'raspiot': <raspiot process memory in bytes (float)>
                 }
         """
@@ -951,12 +951,12 @@ class System(RaspIotModule):
         raspiot = self.__process.memory_info()[0]
         return {
             u'total': system.total,
-            #u'total_hr': Tools.hr_bytes(system.total),
+            #u'totalhr': Tools.hr_bytes(system.total),
             u'available': system.available,
-            u'available_hr': Tools.hr_bytes(system.available),
+            u'availablehr': Tools.hr_bytes(system.available),
             #u'used_percent': system.percent,
             u'raspiot': raspiot,
-            #u'raspiot_hr': Tools.hr_bytes(raspiot),
+            #u'raspiothr': Tools.hr_bytes(raspiot),
             #u'others': system.total - system.available - raspiot
         }
 
@@ -987,12 +987,18 @@ class System(RaspIotModule):
         Return system uptime (in seconds)
 
         Returns:
-            int: uptime
+            dict: uptime info ::
+
+                {
+                    uptime (int): timestamp
+                    uptimehr (string): uptime human readble string
+                }
+
         """
         uptime = int(time.time() - psutil.boot_time())
         return {
             u'uptime': uptime,
-            u'uptime_hr': Tools.hr_uptime(uptime)
+            u'uptimehr': Tools.hr_uptime(uptime)
         }
 
     def __start_monitoring_threads(self):
@@ -1132,52 +1138,6 @@ class System(RaspIotModule):
 
         self.logger.debug(u'Filesystem infos: %s' % fsinfos)
         return fsinfos
-
-    def __purge_cpu_data(self):
-        """
-        Purge cpu data (keep 1 week)
-        """
-        params = {
-            u'uuid': self.__monitor_cpu_uuid,
-            u'timestamp_until': int(time.time()) - 604800
-        }
-
-        try:
-            self.send_command(u'purge_data', u'database', params, 10.0)
-
-        except InvalidModule:
-            #database module not loaded, drop
-            pass
-
-        except NoResponse:
-            self.logger.warning(u'Unable to purge CPU usage from database')
-
-        except:
-            self.logger.exception(u'Unable to purge CPU usage from database:')
-            self.crash_report.report_exception()
-
-    def __purge_memory_data(self):
-        """
-        Purge memory data (keep 1 month)
-        """
-        params = {
-            u'uuid': self.__monitor_memory_uuid,
-            u'timestamp_until': int(time.time()) - 2592000
-        }
-
-        try:
-            self.send_command(u'purge_data', u'database', params, 10.0)
-
-        except InvalidModule:
-            #database module not loaded, drop
-            pass
-
-        except NoResponse:
-            self.logger.warning(u'Unable to purge memory usage from database')
-
-        except:
-            self.logger.exception(u'Unable to purge memory usage from database:')
-            self.crash_report.report_exception()
 
     def download_logs(self):
         """
