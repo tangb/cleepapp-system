@@ -7,13 +7,13 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
     var widgetMonitorController = ['$scope', function($scope) {
         var self = this;
         self.device = $scope.device;
-        self.hasDatabase = raspiotService.hasModule('database');
-        //self.networks = {};
-        self.tabIndex = 'hardware';
+        self.hasCharts = raspiotService.isAppInstalled('charts');
+        self.monitoring = systemService.monitoring;
+        //self.tabIndex = 'hardware';
         self.monitorCpu = null;
         self.monitorMemory = null;
-        self.monitorDiskSystem = null;
-        self.graphCpuOptions = {
+        //self.monitorDiskSystem = null;
+        self.chartCpuOptions = {
             type: 'line',
             label: '%',
             height: 200,
@@ -23,7 +23,7 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
             title: 'CPU usage',
             showControls: false
         };
-        self.graphMemoryOptions = {
+        self.chartMemoryOptions = {
             type: 'line',
             format: function(v) {
                 //bytes to Mo (1024*1024)
@@ -34,7 +34,7 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
             title: 'Memory usage',
             showControls: false
         };
-        self.graphDiskSystemDeferred = null;
+        /*self.graphDiskSystemDeferred = null;
         self.graphDiskSystemOptions = {
             type: 'pie',
             height: 200,
@@ -95,7 +95,7 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
             },
             title: 'External2 ()',
             showControls: false
-        };
+        };*/
 
         /**
          * Return partition data for pie chart (internal use)
@@ -119,77 +119,6 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
          */
         self.loadDialogData = function()
         {
-            self.__getFilesystemInfos();
-            //self.__getNetworkInfos();
-        };
-
-        /**
-         * Load network infos to fill network part
-         */
-        /*self.__getNetworkInfos = function()
-        {
-            systemService.getNetworkInfos()
-                .then(function(resp) {
-                    self.networks = resp.data;
-                });
-        };*/
-
-        /**
-         * Load filesystem infos to fill donut graph
-         */
-        self.__getFilesystemInfos = function()
-        {
-            //get filesystem infos
-            systemService.getFilesystemInfos()
-                .then(function(resp) {
-                    //return partition usages
-                    var extCount = 0;
-                    for( var i=0; i<resp.data.length; i++)
-                    {
-                        if( resp.data[i].mountpoint=='/boot' )
-                        {
-                            //drop boot partition
-                            continue;
-                        }
-                        else if( resp.data[i].mountpoint=='/' )
-                        {
-                            //system partition
-                            self.graphDiskSystemDeferred.resolve(self.__getPartitionData(resp.data[i].used, resp.data[i].free));
-                        }
-                        else if( resp.data[i].mounted )
-                        {
-                            //external partition mounted
-                            if( extCount===0 )
-                            {
-                                //return external1 usage
-                                self.graphDiskExt1Deferred.resolve(self.__getPartitionData(resp.data[i].used, resp.data[i].free));
-                                self.graphDiskExt1Options.title = resp.data[i].mountpoint;
-                                extCount++;
-                            }
-                            else if( extCount==1 )
-                            {
-                                //return external2 usage
-                                self.graphDiskExt2Deferred.resolve(self.__getPartitionData(resp.data[i].used, resp.data[i].free));
-                                self.graphDiskExt2Options.title = resp.data[i].mountpoint;
-                                extCount++;
-                            }
-                        }
-                    }
-
-                    //reject unecessary promises
-                    if( extCount===0 )
-                    {
-                        self.graphDiskExt1Deferred.reject('No external1');
-                        self.graphDistExt1Show = false;
-                        self.graphDiskExt2Deferred.reject('No external2');
-                        self.graphDistExt2Show = false;
-                    }
-                    else if( extCount==1 )
-                    {
-                        self.graphDiskExt2Deferred.reject('No external2');
-                        self.graphDistExt2Show = false;
-                    }
-                });
         };
 
         /**
@@ -197,10 +126,6 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
          */
         self.showDialog = function()
         {
-            self.graphCpuDeferred = $q.defer();
-            self.graphDiskSystemDeferred = $q.defer();
-            self.graphDiskExt1Deferred = $q.defer();
-            self.graphDiskExt2Deferred = $q.defer();
         };
 
         /**
