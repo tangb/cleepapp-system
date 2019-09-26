@@ -209,7 +209,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     self.updateModulePendingStatus = function(module, pending)
     {   
         //update pending status in raspiotService
-        raspiotService.modules[module].pending = pending;
+        if( raspiotService.modules[module] ) {
+            raspiotService.modules[module].pending = pending;
+        }
     };
 
     /** 
@@ -220,7 +222,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     self.updateModuleProcessingStatus = function(module, processing)
     {
         //update pending status in raspiotService
-        raspiotService.modules[module].processing = processing;
+        if( raspiotService.modules[module] ) {
+            raspiotService.modules[module].processing = processing;
+        }
     };
 
     /**
