@@ -74,7 +74,8 @@ class System(RaspIotModule):
         },
         u'lastmodulesprocessing' : {},
         u'raspiotbackupdelay': 15,
-        u'needreboot': False
+        u'needreboot': False,
+        u'latestversion': None,
     }
 
     MONITORING_CPU_DELAY = 60.0 #1 minute
@@ -237,6 +238,7 @@ class System(RaspIotModule):
             u'trace': self.raspiot_conf.is_trace_enabled()
         }
         out[u'raspiotbackupdelay'] = self.raspiot_backup_delay
+        out[u'latestversion'] = config[u'latestversion']
 
         #update related values
         out[u'lastcheckraspiot'] = config[u'lastcheckraspiot']
@@ -766,9 +768,10 @@ class System(RaspIotModule):
             if len(releases)==1:
                 #get latest version available
                 version = github.get_release_version(releases[0])
+                self._set_config_field('latestversion', version)
                 update_changelog = github.get_release_changelog(releases[0])
 
-                self.logger.debug('Compare version: (online)%s!=(installed)%s' % (version, VERSION))
+                self.logger.info('Cleep version status: %s(latest) - %s(installed)' % (version, VERSION))
                 if version!=VERSION:
                     #new version available, trigger update
                     assets = github.get_release_assets_infos(releases[0])
