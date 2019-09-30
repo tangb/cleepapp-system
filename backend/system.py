@@ -35,7 +35,7 @@ class System(RaspIotModule):
     Helps controlling the system device (halt, reboot) and monitoring it
     """
     MODULE_AUTHOR = u'Cleep'
-    MODULE_VERSION = u'1.0.3'
+    MODULE_VERSION = u'1.1.0'
     MODULE_CATEGORY = u'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
@@ -44,9 +44,9 @@ class System(RaspIotModule):
     MODULE_CORE = True
     MODULE_TAGS = [u'troubleshoot', u'locale', u'events', u'monitoring', u'update', u'log']
     MODULE_COUNTRY = u''
-    MODULE_URLINFO = None
+    MODULE_URLINFO = u'https://github.com/tangb/cleepmod-system'
     MODULE_URLHELP = None
-    MODULE_URLBUGS = None
+    MODULE_URLBUGS = u'https://github.com/tangb/cleepmod-system/issues'
     MODULE_URLSITE = None
 
     MODULE_CONFIG_FILE = u'system.conf'
