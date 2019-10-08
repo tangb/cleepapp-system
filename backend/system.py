@@ -24,7 +24,7 @@ from raspiot.libs.configs.modulesjson import ModulesJson
 import raspiot.libs.internals.tools as Tools
 from raspiot.libs.internals.github import Github
 from raspiot import __version__ as VERSION
-from raspiot.libs.internals.raspiotbackup import RaspiotBackup
+from raspiot.libs.internals.cleepbackup import CleepBackup
 
 
 __all__ = [u'System']
@@ -73,7 +73,7 @@ class System(RaspIotModule):
             u'stderr': []
         },
         u'lastmodulesprocessing' : {},
-        u'raspiotbackupdelay': 15,
+        u'cleepbackupdelay': 15,
         u'needreboot': False,
         u'latestversion': None,
     }
@@ -117,8 +117,8 @@ class System(RaspIotModule):
             u'checksum': None
         } 
         self.raspiot_update_pending = False
-        self.raspiot_backup = RaspiotBackup(self.cleep_filesystem, self.crash_report)
-        self.raspiot_backup_delay = None
+        self.cleep_backup = CleepBackup(self.cleep_filesystem, self.crash_report)
+        self.cleep_backup_delay = None
         self.raspiot_conf = RaspiotConf(self.cleep_filesystem)
         self.drivers = bootstrap[u'drivers']
 
@@ -143,7 +143,7 @@ class System(RaspIotModule):
         Configure module
         """
         #set members
-        self.raspiot_backup_delay = self._get_config_field(u'raspiotbackupdelay')
+        self.cleep_backup_delay = self._get_config_field(u'cleepbackupdelay')
 
         #configure crash report
         self.__configure_crash_report(self._get_config_field(u'crashreport'))
@@ -237,7 +237,7 @@ class System(RaspIotModule):
             u'system': self.raspiot_conf.is_system_debugged(),
             u'trace': self.raspiot_conf.is_trace_enabled()
         }
-        out[u'raspiotbackupdelay'] = self.raspiot_backup_delay
+        out[u'cleepbackupdelay'] = self.cleep_backup_delay
         out[u'latestversion'] = config[u'latestversion']
 
         #update related values
@@ -303,7 +303,7 @@ class System(RaspIotModule):
                     pass
 
             #backup
-            if not event[u'params'][u'minute'] % self.raspiot_backup_delay:
+            if not event[u'params'][u'minute'] % self.cleep_backup_delay:
                 self.backup_raspiot_config()
 
     def get_last_module_processing(self, module):
@@ -1375,7 +1375,7 @@ class System(RaspIotModule):
             bool: True if backup successful
         """
         self.logger.debug(u'Backup raspiot configuration')
-        return self.raspiot_backup.backup()
+        return self.cleep_backup.backup()
 
     def set_raspiot_backup_delay(self, delay):
         """
@@ -1390,9 +1390,9 @@ class System(RaspIotModule):
         if delay<5 or delay>60:
             raise MissingParameter(u'Parameter "delay" must be 0..60')
 
-        res = self._set_config_field(u'raspiotbackupdelay', delay)
+        res = self._set_config_field(u'cleepbackupdelay', delay)
         if res:
-            self.raspiot_backup_delay = delay
+            self.cleep_backup_delay = delay
 
         return res
 
