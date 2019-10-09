@@ -239,6 +239,8 @@ class System(RaspIotModule):
         }
         out[u'cleepbackupdelay'] = self.cleep_backup_delay
         out[u'latestversion'] = config[u'latestversion']
+        #out[u'ssl'] = TODO
+        #out[u'rpcport'] = TODO
 
         #update related values
         out[u'lastcheckraspiot'] = config[u'lastcheckraspiot']
@@ -246,6 +248,7 @@ class System(RaspIotModule):
         out[u'raspiotupdateenabled'] = config[u'raspiotupdateenabled']
         out[u'modulesupdateenabled'] = config[u'modulesupdateenabled']
         out[u'raspiotupdateavailable'] = config[u'raspiotupdateavailable']
+        out[u'raspiotupdatechangelog'] = config[u'raspiotupdatechangelog']
         out[u'modulesupdateavailable'] = config[u'modulesupdateavailable']
         out[u'lastraspiotupdate'] = config[u'lastraspiotupdate']
         out[u'lastmodulesprocessing'] = config[u'lastmodulesprocessing'].keys()
@@ -763,13 +766,21 @@ class System(RaspIotModule):
         self.__raspiot_update[u'checksum'] = None
 
         try:
-            github = Github()
-            releases = github.get_releases(self.RASPIOT_GITHUB_OWNER, self.RASPIOT_GITHUB_REPO, only_latest=True, only_released=True)
+            #get beta release if GITHUB_TOKEN env variable registered
+            github_token = None
+            only_released = True
+            if u'GITHUB_TOKEN' in os.environ:
+                github_token = os.environ[u'GITHUB_TOKEN']
+                only_released = False # used to get beta release
+
+            github = Github(github_token)
+            releases = github.get_releases(self.RASPIOT_GITHUB_OWNER, self.RASPIOT_GITHUB_REPO, only_latest=True, only_released=only_released)
             if len(releases)==1:
                 #get latest version available
                 version = github.get_release_version(releases[0])
                 self._set_config_field('latestversion', version)
                 update_changelog = github.get_release_changelog(releases[0])
+                self.logger.debug(u'Update changelog: %s' % update_changelog)
 
                 self.logger.info('Cleep version status: %s(latest) - %s(installed)' % (version, VERSION))
                 if version!=VERSION:
@@ -795,7 +806,7 @@ class System(RaspIotModule):
                                 break
 
                     if self.__raspiot_update[u'package'] and self.__raspiot_update[u'checksum']:
-                        self.logger.debug(u'Update and checksum found, can trigger update')
+                        self.logger.info(u'Archive and checksum files found, can trigger update')
                         self.logger.debug(u'raspiot_update: %s' % self.__raspiot_update)
                         update_available = version
 

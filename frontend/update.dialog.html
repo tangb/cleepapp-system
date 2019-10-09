@@ -22,7 +22,7 @@
     	            <!-- changelog -->
         	        <md-subheader style="background-color:white;" class="md-subheader-inner">What's new</md-subheader>
             	    <md-list-item>
-                	    <span ng-if="updateCtl.raspiotUpdateChangelog.length>0" ng-bind="updateCtl.raspiotUpdateChangelog"></span>
+                	    <span ng-if="updateCtl.raspiotUpdateChangelog.length>0" ng-bind="updateCtl.raspiotUpdateChangelog" style="white-space: pre-wrap;"></span>
 	                    <span ng-if="!updateCtl.raspiotUpdateChangelog || updateCtl.raspiotUpdateChangelog.length===0">No changelog provided</span>
     	            </md-list-item>
 
