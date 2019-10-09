@@ -30,20 +30,20 @@
                 <md-checkbox class="md-secondary" ng-model="systemCtl.modulesUpdateEnabled" ng-change="systemCtl.setAutomaticUpdate()"></md-checkbox>
             </md-list-item>
 
-            <!-- raspiot -->
-            <md-subheader class="md-no-sticky">Application updates</md-subheader>
+            <!-- cleep -->
+            <md-subheader class="md-no-sticky">Cleep updates</md-subheader>
             <md-list-item>
-                <p>Application version {{systemCtl.version}} is installed (last check {{systemCtl.lastCheckRaspiot | hrDatetime}})</p>
+                <p>Cleep version {{systemCtl.version}} is installed (last check {{systemCtl.lastCheckRaspiot | hrDatetime}})</p>
                 <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.checkRaspiotUpdates()" ng-disabled="systemCtl.systemService.raspiotInstallStatus!==0 || systemCtl.raspiotUpdatePending">Check updates</md-button>
             </md-list-item>
             <md-list-item ng-if="systemCtl.raspiotUpdateAvailable && systemCtl.systemService.raspiotInstallStatus===0 && !systemCtl.raspiotUpdatePending">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>New application version available (v{{systemCtl.raspiotUpdateAvailable}})</p>
-                <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.showUpdateDialog()">Update CleepOS</md-button>
+                <p>New Cleep version available (v{{systemCtl.raspiotUpdateAvailable}})</p>
+                <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.showUpdateDialog()">Update Cleep</md-button>
             </md-list-item>
             <md-list-item ng-if="systemCtl.raspiotUpdatePending">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Application updated, please reboot</p>
+                <p>Cleep updated, please reboot</p>
                 <md-button class="md-secondary md-raised md-accent" ng-click="systemCtl.reboot()">Reboot</md-button>
             </md-list-item>
             <md-list-item ng-if="systemCtl.lastRaspiotUpdate.time!==0 && systemCtl.systemService.raspiotInstallStatus===0">
@@ -69,15 +69,15 @@
                 </div>
             </md-list-item>
 
-            <!-- modules -->
-            <md-subheader class="md-no-sticky">Modules update</md-subheader>
+            <!-- applications -->
+            <md-subheader class="md-no-sticky">Applications updates</md-subheader>
             <md-list-item>
-                <p>Check for new modules versions (last check {{systemCtl.lastCheckModules | hrDatetime}})</p>
+                <p>Check for new apps versions (last check {{systemCtl.lastCheckModules | hrDatetime}})</p>
                 <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.checkModulesUpdates()">Check updates</md-button>
             </md-list-item>
             <md-list-item ng-if="systemCtl.modulesUpdateAvailable && !systemCtl.modulesUpdateEnabled">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Some modules updates are available</p>
+                <p>Some application updates are available</p>
                 <md-button class="md-secondary md-raised md-primary" href="#!modules">Go to apps list</md-button>
             </md-list-item>
 
