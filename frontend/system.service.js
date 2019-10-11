@@ -309,13 +309,13 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         }
         else if( params.status==2 )
         {   
-            toast.success('CleepOS has been updated successfully. Please reboot device.');
+            toast.success('Cleep has been updated successfully. Please reboot device.');
             //reset install status to remove item from ui
             self.raspiotInstallStatus = 0;
         }   
         else
         {   
-            toast.error('Error during CleepOS update. See logs for details.');
+            toast.error('Error during Cleep update. See logs for details.');
             //reset install status to remove item from ui
             self.raspiotInstallStatus = 0;
         }   
