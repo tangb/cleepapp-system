@@ -472,6 +472,10 @@ class System(RaspIotModule):
             #update raspiot.conf
             self.raspiot_conf.install_module(status[u'module'])
 
+        #lock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.disable_write(True, True)
+
     def install_module(self, module):
         """
         Install specified module
@@ -489,6 +493,10 @@ class System(RaspIotModule):
         #get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to install infos: %s' % infos)
+
+        #lock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.enable_write(True, True)
 
         #install module dependencies
         for dep in infos[u'deps']:
@@ -522,6 +530,10 @@ class System(RaspIotModule):
             #update raspiot.conf
             self.raspiot_conf.uninstall_module(status[u'module'])
 
+        #lock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.disable_write(True, True)
+
     def uninstall_module(self, module, force=False):
         """
         Uninstall specified module
@@ -540,6 +552,10 @@ class System(RaspIotModule):
         #get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to uninstall infos: %s' % infos)
+
+        #unlock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.enable_write(True, True)
 
         #resolve module dependencies
         modules_to_uninstall = self.__dependencies_to_uninstall(module)
@@ -593,6 +609,10 @@ class System(RaspIotModule):
             #update raspiot.conf adding module to updated ones
             self.raspiot_conf.update_module(status[u'module'])
 
+        #lock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.disable_write(True, True)
+
     def update_module(self, module):
         """
         Update specified module
@@ -610,6 +630,10 @@ class System(RaspIotModule):
         #get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to update infos: %s' % infos)
+
+        #unlock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.enable_write(True, True)
 
         #update module dependencies
         #TODO handle dependencies updates
@@ -917,6 +941,10 @@ class System(RaspIotModule):
                     u'stderr': stderr
                 }
             })
+
+            #lock filesystem
+            if self.cleep_filesystem:
+                self.cleep_filesystem.disable_write(True, True)
     
         #handle end of successful process to trigger restart
         if status[u'status']==InstallRaspiot.STATUS_UPDATED:
@@ -937,6 +965,10 @@ class System(RaspIotModule):
                 raise CommandInfo(u'No raspiot update available')
             else:
                 self.logger.debug('Finally an update is available, process it')
+
+        #unlock filesystem
+        if self.cleep_filesystem:
+            self.cleep_filesystem.enable_write(True, True)
 
         #launch install
         package_url = self.__raspiot_update[u'package'][u'url']
