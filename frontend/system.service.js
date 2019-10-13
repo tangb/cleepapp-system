@@ -309,7 +309,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         }
         else if( params.status==2 )
         {   
-            toast.success('Cleep has been updated successfully. Please reboot device.');
+            toast.success('Cleep has been updated successfully. Device will reboot.');
             //reset install status to remove item from ui
             self.raspiotInstallStatus = 0;
         }   
