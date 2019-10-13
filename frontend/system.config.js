@@ -192,20 +192,18 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             systemService.updateRaspiot();
         };
 
-        /**
-         * Refresh config when raspiot update terminated
+        /** 
+         * Watch for config changes
          */
-        $scope.$watch(function() {
-            return systemService.raspiotInstallStatus;
-        }, function(newValue, oldValue) {
-            if( newValue<oldValue ) {
-                //update terminated
-                raspiotService.reloadModuleConfig('system')
-                    .then(function(config) {
-                        self.setConfig(config);
-                    });
-            }
+        $rootScope.$watchCollection(function() {
+            return raspiotService.modules['system'];
+        }, function(newConfig, oldConfig) {
+            if( newConfig )
+            {   
+                self.setConfig(newConfig.config);
+            }   
         });
+
 
         /**************
          * Backup tab
