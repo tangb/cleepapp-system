@@ -512,6 +512,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             self.lastRaspiotUpdate = config.lastraspiotupdate;
             self.lastRaspiotUpdate.stdoutStr = config.lastraspiotupdate.stdout.join('\n');
             self.lastRaspiotUpdate.stderrStr = config.lastraspiotupdate.stderr.join('\n');
+            self.lastRaspiotUpdate.processStr = config.lastraspiotupdate.process.join('\n');
             self.lastModulesProcessing = config.lastmodulesprocessing;
             self.raspiotUpdatePending = config.raspiotupdatepending;
             self.backupDelay = config.raspiotbackupdelay;
