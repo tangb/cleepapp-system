@@ -41,7 +41,6 @@ class System(RaspIotModule):
     MODULE_DEPS = []
     MODULE_DESCRIPTION = u'Helps updating, controlling and monitoring the device'
     MODULE_LONGDESCRIPTION = u'Application that helps you to configure your system'
-    MODULE_CORE = True
     MODULE_TAGS = [u'troubleshoot', u'locale', u'events', u'monitoring', u'update', u'log']
     MODULE_COUNTRY = u''
     MODULE_URLINFO = u'https://github.com/tangb/cleepmod-system'
@@ -163,14 +162,14 @@ class System(RaspIotModule):
             }
             self._add_device(monitor)
 
-            #add fake monitor cpu device (used to save cpu data into database and has no widget)
+            #add monitor cpu device (used to save cpu data into database and has no widget)
             monitor = {
                 u'type': u'monitorcpu',
                 u'name': u'Cpu monitor'
             }
             self._add_device(monitor)
 
-            #add fake monitor memory device (used to save cpu data into database and has no widget)
+            #add monitor memory device (used to save cpu data into database and has no widget)
             monitor = {
                 u'type': u'monitormemory',
                 u'name': u'Memory monitor'
