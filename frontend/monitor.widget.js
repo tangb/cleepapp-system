@@ -115,20 +115,6 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
         };
 
         /**
-         * Load dialog data
-         */
-        self.loadDialogData = function()
-        {
-        };
-
-        /**
-         * Show dialog event
-         */
-        self.showDialog = function()
-        {
-        };
-
-        /**
          * Cancel dialog
          */
         self.cancelDialog = function()
@@ -146,8 +132,6 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
                 templateUrl: 'monitorDialog.widget.html',
                 parent: angular.element(document.body),
                 clickOutsideToClose: true,
-                onShowing: self.showDialog,                
-                onComplete: self.loadDialogData
             });
         };
 
