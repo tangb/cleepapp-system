@@ -2,12 +2,12 @@
  * Monitor widget directive
  * Display system monitor dashboard widget
  */
-var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, $q) {
+var widgetMonitorDirective = function(cleepService, $mdDialog, systemService, $q) {
 
     var widgetMonitorController = ['$scope', function($scope) {
         var self = this;
         self.device = $scope.device;
-        self.hasCharts = raspiotService.isAppInstalled('charts');
+        self.hasCharts = cleepService.isAppInstalled('charts');
         self.monitoring = systemService.monitoring;
         //self.tabIndex = 'hardware';
         self.monitorCpu = null;
@@ -141,15 +141,15 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
         self.init = function()
         {
             //get cpu and memory devices
-            for( var i=0; i<raspiotService.devices.length; i++ )
+            for( var i=0; i<cleepService.devices.length; i++ )
             {
-                if( raspiotService.devices[i].type==='monitorcpu' )
+                if( cleepService.devices[i].type==='monitorcpu' )
                 {
-                    self.monitorCpu = raspiotService.devices[i];
+                    self.monitorCpu = cleepService.devices[i];
                 }
-                else if( raspiotService.devices[i].type==='monitormemory' )
+                else if( cleepService.devices[i].type==='monitormemory' )
                 {
-                    self.monitorMemory = raspiotService.devices[i];
+                    self.monitorMemory = cleepService.devices[i];
                 }
             }
         };
@@ -173,6 +173,6 @@ var widgetMonitorDirective = function(raspiotService, $mdDialog, systemService, 
     };
 };
 
-var RaspIot = angular.module('RaspIot');
-RaspIot.directive('widgetMonitorDirective', ['raspiotService', '$mdDialog', 'systemService', '$q', widgetMonitorDirective]);
+var Cleep = angular.module('Cleep');
+Cleep.directive('widgetMonitorDirective', ['cleepService', '$mdDialog', 'systemService', '$q', widgetMonitorDirective]);
 

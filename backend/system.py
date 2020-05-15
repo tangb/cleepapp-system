@@ -1,36 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-    
+
 import os
 import logging
-from raspiot.utils import InvalidParameter, MissingParameter, NoResponse, InvalidModule, CommandError, CommandInfo
-from raspiot.raspiot import RaspIotModule
-from raspiot.libs.internals.task import Task
-import raspiot
 from datetime import datetime
 import time
-import psutil
-import time
 import uuid
-import socket
 from zipfile import ZipFile, ZIP_DEFLATED
 from tempfile import NamedTemporaryFile
-from raspiot.libs.internals.console import Console, EndlessConsole
-from raspiot.libs.configs.fstab import Fstab
-from raspiot.libs.configs.raspiotconf import RaspiotConf
-from raspiot.libs.internals.install import Install
-from raspiot.libs.internals.installraspiot import InstallRaspiot
-from raspiot.libs.configs.modulesjson import ModulesJson
-import raspiot.libs.internals.tools as Tools
-from raspiot.libs.internals.github import Github
-from raspiot import __version__ as VERSION
-from raspiot.libs.internals.cleepbackup import CleepBackup
+import psutil
+from cleep.exception import InvalidParameter, MissingParameter, CommandError, CommandInfo
+from cleep.core import CleepModule
+from cleep.libs.internals.task import Task
+from cleep.libs.internals.console import Console
+from cleep.libs.configs.fstab import Fstab
+from cleep.libs.configs.cleepconf import CleepConf
+from cleep.libs.internals.install import Install
+from cleep.libs.internals.installcleep import InstallCleep
+from cleep.libs.configs.modulesjson import ModulesJson
+import cleep.libs.internals.tools as Tools
+from cleep.libs.internals.cleepgithub import CleepGithub
+from cleep import __version__ as VERSION
+from cleep.libs.internals.cleepbackup import CleepBackup
 
 
 __all__ = [u'System']
 
 
-class System(RaspIotModule):
+class System(CleepModule):
     """
     Helps controlling the system device (halt, reboot) and monitoring it
     """
@@ -59,13 +56,13 @@ class System(RaspIotModule):
         u'eventsnotrendered': [],
         u'crashreport': True,
 
-        u'lastcheckraspiot': None,
+        u'lastcheckcleep': None,
         u'lastcheckmodules': None,
-        u'raspiotupdateenabled': False,
+        u'cleepupdateenabled': False,
         u'modulesupdateenabled': False,
-        u'raspiotupdateavailable': None,
+        u'cleepupdateavailable': None,
         u'modulesupdateavailable': False,
-        u'lastraspiotupdate': {
+        u'lastcleepupdate': {
             u'status': None,
             u'time': 0,
             u'stdout': [],
@@ -75,6 +72,7 @@ class System(RaspIotModule):
         u'cleepbackupdelay': 15,
         u'needreboot': False,
         u'latestversion': None,
+        u'cleepupdatechangelog': None,
     }
 
     MONITORING_CPU_DELAY = 60.0 #1 minute
@@ -85,8 +83,8 @@ class System(RaspIotModule):
     THRESHOLD_DISK_SYSTEM = 80.0
     THRESHOLD_DISK_EXTERNAL = 90.0
 
-    RASPIOT_GITHUB_OWNER = u'tangb'
-    RASPIOT_GITHUB_REPO = u'cleep'
+    CLEEP_GITHUB_OWNER = u'tangb'
+    CLEEP_GITHUB_REPO = u'cleep'
 
     def __init__(self, bootstrap, debug_enabled):
         """
@@ -96,9 +94,9 @@ class System(RaspIotModule):
             bootstrap (dict): bootstrap objects
             debug_enabled (bool): flag to set debug level to logger
         """
-        RaspIotModule.__init__(self, bootstrap, debug_enabled)
+        CleepModule.__init__(self, bootstrap, debug_enabled)
 
-        #members
+        # members
         self.events_broker = bootstrap[u'events_broker']
         self.log_file = bootstrap[u'log_file']
         self.__monitor_cpu_uuid = None
@@ -111,17 +109,21 @@ class System(RaspIotModule):
         self.modules_json = ModulesJson(self.cleep_filesystem)
         self.__updating_modules = []
         self.__modules = {}
-        self.__raspiot_update = {
-            u'package': None,
-            u'checksum': None
-        } 
-        self.raspiot_update_pending = False
+        self.__cleep_update = {
+            u'package': {
+                'url': None
+            },
+            u'checksum': {
+                'url': None
+            }
+        }
+        self.cleep_update_pending = False
         self.cleep_backup = CleepBackup(self.cleep_filesystem, self.crash_report)
         self.cleep_backup_delay = None
-        self.raspiot_conf = RaspiotConf(self.cleep_filesystem)
+        self.cleep_conf = CleepConf(self.cleep_filesystem)
         self.drivers = bootstrap[u'drivers']
 
-        #events
+        # events
         self.system_system_halt = self._get_event(u'system.system.halt')
         self.system_system_reboot = self._get_event(u'system.system.reboot')
         self.system_system_restart = self._get_event(u'system.system.restart')
@@ -133,7 +135,7 @@ class System(RaspIotModule):
         self.system_module_install = self._get_event(u'system.module.install')
         self.system_module_uninstall = self._get_event(u'system.module.uninstall')
         self.system_module_update = self._get_event(u'system.module.update')
-        self.system_raspiot_update = self._get_event(u'system.raspiot.update')
+        self.system_cleep_update = self._get_event(u'system.cleep.update')
         self.system_driver_install = self._get_event(u'system.driver.install')
         self.system_driver_uninstall = self._get_event(u'system.driver.uninstall')
 
@@ -141,62 +143,62 @@ class System(RaspIotModule):
         """
         Configure module
         """
-        #set members
+        # set members
         self.cleep_backup_delay = self._get_config_field(u'cleepbackupdelay')
 
-        #configure crash report
+        # configure crash report
         self.__configure_crash_report(self._get_config_field(u'crashreport'))
 
-        #init first cpu percent for current process
+        # init first cpu percent for current process
         self.__process = psutil.Process(os.getpid())
         self.__process.cpu_percent()
 
-        #add devices if they are not already added
-        if self._get_device_count()<3:
+        # add devices if they are not already added
+        if self._get_device_count() < 3:
             self.logger.debug(u'Add default devices (device count=%d)' % self._get_device_count())
 
-            #add fake monitor device (used to have a device on dashboard)
+            # add fake monitor device (used to have a device on dashboard)
             monitor = {
                 u'type': u'monitor',
                 u'name': u'System monitor'
             }
             self._add_device(monitor)
 
-            #add monitor cpu device (used to save cpu data into database and has no widget)
+            # add monitor cpu device (used to save cpu data into database and has no widget)
             monitor = {
                 u'type': u'monitorcpu',
                 u'name': u'Cpu monitor'
             }
             self._add_device(monitor)
 
-            #add monitor memory device (used to save cpu data into database and has no widget)
+            # add monitor memory device (used to save cpu data into database and has no widget)
             monitor = {
                 u'type': u'monitormemory',
                 u'name': u'Memory monitor'
             }
             self._add_device(monitor)
 
-        #store device uuids for events
+        # store device uuids for events
         devices = self.get_module_devices()
-        for uuid in devices:
-            if devices[uuid][u'type']==u'monitorcpu':
+        for device_uuid in devices:
+            if devices[device_uuid][u'type'] == u'monitorcpu':
                 self.__monitor_cpu_uuid = uuid
-            elif devices[uuid][u'type']==u'monitormemory':
+            elif devices[device_uuid][u'type'] == u'monitormemory':
                 self.__monitor_memory_uuid = uuid
 
-        #launch monitoring thread
+        # launch monitoring thread
         self.__start_monitoring_threads()
 
-        #download modules.json file if not exists
+        # download modules.json file if not exists
         if not self.modules_json.exists():
-            self.logger.info(u'Download latest modules.json file from raspiot repository')
+            self.logger.info(u'Download latest modules.json file from Cleep repository')
             self.modules_json.update()
 
-    def _stop(self):
+    def _custom_stop(self):
         """
         Stop module
         """
-        #stop monitoring task
+        # stop monitoring task
         self.__stop_monitoring_threads()
 
     def __configure_crash_report(self, enable):
@@ -206,7 +208,7 @@ class System(RaspIotModule):
         Args:
             enable (bool): True to enable crash report
         """
-        #configure crash report
+        # configure crash report
         if enable:
             self.crash_report.enable()
         else:
@@ -233,25 +235,25 @@ class System(RaspIotModule):
         out[u'version'] = VERSION
         out[u'eventsnotrendered'] = self.get_events_not_rendered()
         out[u'debug'] = {
-            u'system': self.raspiot_conf.is_system_debugged(),
-            u'trace': self.raspiot_conf.is_trace_enabled()
+            u'system': self.cleep_conf.is_system_debugged(),
+            u'trace': self.cleep_conf.is_trace_enabled()
         }
         out[u'cleepbackupdelay'] = self.cleep_backup_delay
         out[u'latestversion'] = config[u'latestversion']
-        #out[u'ssl'] = TODO
-        #out[u'rpcport'] = TODO
+        # out[u'ssl'] = TODO
+        # out[u'rpcport'] = TODO
 
-        #update related values
-        out[u'lastcheckraspiot'] = config[u'lastcheckraspiot']
+        # update related values
+        out[u'lastcheckcleep'] = config[u'lastcheckcleep']
         out[u'lastcheckmodules'] = config[u'lastcheckmodules']
-        out[u'raspiotupdateenabled'] = config[u'raspiotupdateenabled']
+        out[u'cleepupdateenabled'] = config[u'cleepupdateenabled']
         out[u'modulesupdateenabled'] = config[u'modulesupdateenabled']
-        out[u'raspiotupdateavailable'] = config[u'raspiotupdateavailable']
-        out[u'raspiotupdatechangelog'] = config[u'raspiotupdatechangelog']
+        out[u'cleepupdateavailable'] = config[u'cleepupdateavailable']
+        out[u'cleepupdatechangelog'] = config[u'cleepupdatechangelog']
         out[u'modulesupdateavailable'] = config[u'modulesupdateavailable']
-        out[u'lastraspiotupdate'] = config[u'lastraspiotupdate']
-        out[u'lastmodulesprocessing'] = config[u'lastmodulesprocessing'].keys()
-        out[u'raspiotupdatepending'] = self.raspiot_update_pending
+        out[u'lastcleepupdate'] = config[u'lastcleepupdate']
+        out[u'lastmodulesprocessing'] = list(config[u'lastmodulesprocessing'].keys())
+        out[u'cleepupdatepending'] = self.cleep_update_pending
 
         return out
 
@@ -263,14 +265,14 @@ class System(RaspIotModule):
             dict: devices
         """
         devices = super(System, self).get_module_devices()
-        
-        for uuid in devices:
-            if devices[uuid][u'type']==u'monitor':
+
+        for device_uuid in devices:
+            if devices[device_uuid][u'type'] == u'monitor':
                 data = {}
                 data[u'uptime'] = self.get_uptime()
                 data[u'cpu'] = self.get_cpu_usage()
                 data[u'memory'] = self.get_memory_usage()
-                devices[uuid].update(data)
+                devices[device_uuid].update(data)
 
         return devices
 
@@ -281,32 +283,32 @@ class System(RaspIotModule):
         Args:
             event (MessageRequest): event data
         """
-        #handle restart event
+        # handle restart event
         if event[u'event'].endswith('system.needrestart'):
             self.__need_restart = True
 
-        #handle reboot event
+        # handle reboot event
         elif event[u'event'].endswith('system.needreboot'):
             self._set_config_field(u'needreboot', True)
 
-        if event[u'event']==u'parameters.time.now':
-            #update
-            if event[u'params'][u'hour']==12 and event[u'params'][u'minute']==0:
-                #check updates at noon
-                self.check_raspiot_updates()
+        if event[u'event'] == u'parameters.time.now':
+            # update
+            if event[u'params'][u'hour'] == 12 and event[u'params'][u'minute'] == 0:
+                # check updates at noon
+                self.check_cleep_updates()
                 self.check_modules_updates()
 
-                #and perform updates if allowed (do not update cleepos and modules at the same time)
+                # and perform updates if allowed (do not update cleepos and modules at the same time)
                 config = self._get_config()
-                if config[u'raspiotupdateenabled'] is True and self.raspiot_update_pending is False and config[u'raspiotupdateavailable'] is not None:
-                    self.update_raspiot()
+                if config[u'cleepupdateenabled'] is True and self.cleep_update_pending is False and config[u'cleepupdateavailable'] is not None:
+                    self.update_cleep()
                 elif config[u'modulesupdateenabled'] is True:
-                    #TODO update modules that need to be updated
+                    # TODO update modules that need to be updated
                     pass
 
-            #backup
+            # backup
             if not event[u'params'][u'minute'] % self.cleep_backup_delay:
-                self.backup_raspiot_config()
+                self.backup_cleep_config()
 
     def get_last_module_processing(self, module):
         """
@@ -332,7 +334,7 @@ class System(RaspIotModule):
     def set_monitoring(self, monitoring):
         """
         Set monitoring flag
-        
+
         Params:
             monitoring (bool): monitoring flag
         """
@@ -355,15 +357,15 @@ class System(RaspIotModule):
         """
         Reboot system
         """
-        #backup configuration
-        self.backup_raspiot_config()
+        # backup configuration
+        self.backup_cleep_config()
 
-        #send event
+        # send event
         self.system_system_reboot.send({
             u'delay': delay
         })
 
-        #and reboot system
+        # and reboot system
         console = Console()
         console.command_delayed(u'reboot', delay)
 
@@ -371,33 +373,33 @@ class System(RaspIotModule):
         """
         Halt system
         """
-        #backup configuration
-        self.backup_raspiot_config()
+        # backup configuration
+        self.backup_cleep_config()
 
-        #send event
+        # send event
         self.system_system_halt.send({
             u'delay': delay
         })
 
-        #and reboot system
+        # and reboot system
         console = Console()
         console.command_delayed(u'halt', delay)
 
     def restart(self, delay=3.0):
         """
-        Restart raspiot
+        Restart Cleep
         """
-        #backup configuration
-        self.backup_raspiot_config()
+        # backup configuration
+        self.backup_cleep_config()
 
-        #send event
+        # send event
         self.system_system_restart.send({
             u'delay': delay
         })
 
-        #and restart raspiot
+        # and restart cleep
         console = Console()
-        console.command_delayed(u'/etc/raspiot/raspiothelper.sh restart', delay)
+        console.command_delayed(u'/etc/cleep/cleephelper.sh restart', delay)
 
     def __get_module_infos(self, module):
         """
@@ -409,7 +411,7 @@ class System(RaspIotModule):
         Return:
             dict: module infos
         """
-        #get infos from inventory
+        # get infos from inventory
         resp = self.send_command('get_module_infos', u'inventory', {'module': module})
         if resp[u'error']:
             self.logger.error(u'Unable to get module infos: %s' % resp[u'message'])
@@ -427,12 +429,12 @@ class System(RaspIotModule):
         Args:
             status (dict): last status as returned by installmodule lib
         """
-        #get config
+        # get config
         lastmodulesprocessing = self._get_config_field(u'lastmodulesprocessing')
 
-        #update last module processing
-        if status[u'status']==Install.STATUS_ERROR:
-            #save last status when error
+        # update last module processing
+        if status[u'status'] == Install.STATUS_ERROR:
+            # save last status when error
             lastmodulesprocessing[status[u'module']] = {
                 u'status': status[u'status'],
                 u'time': int(time.time()),
@@ -441,11 +443,11 @@ class System(RaspIotModule):
                 u'process': status[u'process']
             }
 
-        elif status[u'status']==Install.STATUS_DONE and status[u'module'] in lastmodulesprocessing:
-            #clear existing status when done
+        elif status[u'status'] == Install.STATUS_DONE and status[u'module'] in lastmodulesprocessing:
+            # clear existing status when done
             del lastmodulesprocessing[status[u'module']]
 
-        #save config
+        # save config
         self._set_config_field(u'lastmodulesprocessing', lastmodulesprocessing)
 
     def __module_install_callback(self, status):
@@ -456,22 +458,22 @@ class System(RaspIotModule):
             status (dict): process status {stdout (list), stderr (list), status (int), module (string)}
         """
         self.logger.debug(u'Module install callback status: %s' % status)
-        
-        #send process status
+
+        # send process status
         self.system_module_install.send(params=status)
 
-        #save last module processing
+        # save last module processing
         self.__update_last_module_processing(status)
 
-        #handle end of process to trigger restart
-        if status[u'status']==Install.STATUS_DONE:
-            #need to restart
+        # handle end of process to trigger restart
+        if status[u'status'] == Install.STATUS_DONE:
+            # need to restart
             self.__need_restart = True
 
-            #update raspiot.conf
-            self.raspiot_conf.install_module(status[u'module'])
+            # update cleep.conf
+            self.cleep_conf.install_module(status[u'module'])
 
-        #lock filesystem
+        # lock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.disable_write(True, True)
 
@@ -485,23 +487,23 @@ class System(RaspIotModule):
         Returns:
             bool: True if module installed
         """
-        #check params
-        if module is None or len(module)==0:
+        # check params
+        if module is None or len(module) == 0:
             raise MissingParameter(u'Parameter "module" is missing')
 
-        #get module infos
+        # get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to install infos: %s' % infos)
 
-        #lock filesystem
+        # lock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.enable_write(True, True)
 
-        #install module dependencies
+        # install module dependencies
         for dep in infos[u'deps']:
             self.install_module(dep)
 
-        #launch module installation (non blocking)
+        # launch module installation (non blocking)
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_install_callback)
         install.install_module(module, infos)
 
@@ -515,21 +517,21 @@ class System(RaspIotModule):
             status (dict): process status {stdout (list), stderr (list), status (int), module (string)}
         """
         self.logger.debug(u'Module uninstall callback status: %s' % status)
-        
-        #send process status to ui
+
+        # send process status to ui
         self.system_module_uninstall.send(params=status)
 
-        #save last module processing
+        # save last module processing
         self.__update_last_module_processing(status)
 
-        #handle end of process to trigger restart
-        if status[u'status']==Install.STATUS_DONE:
+        # handle end of process to trigger restart
+        if status[u'status'] == Install.STATUS_DONE:
             self.__need_restart = True
 
-            #update raspiot.conf
-            self.raspiot_conf.uninstall_module(status[u'module'])
+            # update cleep.conf
+            self.cleep_conf.uninstall_module(status[u'module'])
 
-        #lock filesystem
+        # lock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.disable_write(True, True)
 
@@ -544,31 +546,33 @@ class System(RaspIotModule):
         Returns:
             bool: True if module uninstalled
         """
-        #check params
-        if module is None or len(module)==0:
+        # check params
+        if module is None or len(module) == 0:
             raise MissingParameter(u'Parameter "module" is missing')
 
-        #get module infos
+        # get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to uninstall infos: %s' % infos)
 
-        #unlock filesystem
+        # unlock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.enable_write(True, True)
 
-        #resolve module dependencies
+        # resolve module dependencies
         modules_to_uninstall = self.__dependencies_to_uninstall(module)
         self.logger.debug(u'List of modules supposed to be uninstalled with %s: %s' % (module, modules_to_uninstall))
         for module_to_uninstall in modules_to_uninstall[:]:
             dep_infos = self.__get_module_infos(module_to_uninstall)
             for dependsof in dep_infos[u'dependsof']:
                 if dependsof not in modules_to_uninstall:
-                    #do not uninstall this module because it has other dependency
-                    self.logger.debug('Do not remove module "%s" which is still needed by "%s" module' % (module_to_uninstall, dependsof))
+                    # do not uninstall this module because it has other dependency
+                    self.logger.debug(
+                        'Do not remove module "%s" which is still needed by "%s" module' % (module_to_uninstall, dependsof)
+                    )
                     modules_to_uninstall.remove(module_to_uninstall)
                     break
-            
-        #uninstall module + dependencies
+
+        # uninstall module + dependencies
         self.logger.info(u'Module %s uninstall will remove %s' % (module, modules_to_uninstall))
         for module_name in modules_to_uninstall:
             install = Install(self.cleep_filesystem, self.crash_report, self.__module_uninstall_callback)
@@ -576,10 +580,10 @@ class System(RaspIotModule):
 
         return True
 
-    def __dependencies_to_uninstall(self, dep):
-        deps_to_uninstall = [dep]
+    def __dependencies_to_uninstall(self, dependency):
+        deps_to_uninstall = [dependency]
 
-        infos = self.__get_module_infos(dep)
+        infos = self.__get_module_infos(dependency)
         for dep in infos[u'deps']:
             deps = self.__dependencies_to_uninstall(dep)
             deps_to_uninstall = list(set(deps) | set(deps_to_uninstall))
@@ -594,21 +598,21 @@ class System(RaspIotModule):
             status (dict): process status {stdout (list), stderr (list), status (int), module (string)}
         """
         self.logger.debug(u'Module update callback status: %s' % status)
-        
-        #send process status to ui
+
+        # send process status to ui
         self.system_module_update.send(params=status)
 
-        #save last module processing
+        # save last module processing
         self.__update_last_module_processing(status)
 
-        #handle end of process to trigger restart
-        if status[u'status']==Install.STATUS_DONE:
+        # handle end of process to trigger restart
+        if status[u'status'] == Install.STATUS_DONE:
             self.__need_restart = True
 
-            #update raspiot.conf adding module to updated ones
-            self.raspiot_conf.update_module(status[u'module'])
+            # update cleep.conf adding module to updated ones
+            self.cleep_conf.update_module(status[u'module'])
 
-        #lock filesystem
+        # lock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.disable_write(True, True)
 
@@ -622,42 +626,42 @@ class System(RaspIotModule):
         Returns:
             bool: True if module uninstalled
         """
-        #check params
-        if module is None or len(module)==0:
+        # check params
+        if module is None or len(module) == 0:
             raise MissingParameter(u'Parameter "module" is missing')
 
-        #get module infos
+        # get module infos
         infos = self.__get_module_infos(module)
         self.logger.debug(u'Module to update infos: %s' % infos)
 
-        #unlock filesystem
+        # unlock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.enable_write(True, True)
 
-        #update module dependencies
-        #TODO handle dependencies updates
+        # update module dependencies
+        # TODO handle dependencies updates
 
-        #launch module update
+        # launch module update
         install = Install(self.cleep_filesystem, self.crash_report, self.__module_update_callback)
         install.update_module(module, infos)
 
         return True
 
-    def set_automatic_update(self, raspiot_update_enabled, modules_update_enabled):
+    def set_automatic_update(self, cleep_update_enabled, modules_update_enabled):
         """
         Set automatic update values
 
         Args:
-            raspiot_update_enabled (bool): enable raspiot automatic update
+            cleep_update_enabled (bool): enable cleep automatic update
             modules_update_enabled (bool): enable modules automatic update
         """
-        if not isinstance(raspiot_update_enabled, bool):
-            raise InvalidParameter('Parameter "raspiot_update_enabled" is invalid')
+        if not isinstance(cleep_update_enabled, bool):
+            raise InvalidParameter('Parameter "cleep_update_enabled" is invalid')
         if not isinstance(modules_update_enabled, bool):
             raise InvalidParameter('Parameter "modules_update_enabled" is invalid')
 
         return self._update_config({
-            u'raspiotupdateenabled': raspiot_update_enabled,
+            u'cleepupdateenabled': cleep_update_enabled,
             u'modulesupdateenabled': modules_update_enabled
         })
 
@@ -668,29 +672,28 @@ class System(RaspIotModule):
         Return:
             dict: modules dict as returned by inventory
         """
-        if len(self.__modules)==0:
-            #retrieve modules from inventory
+        if len(self.__modules) == 0:
+            # retrieve modules from inventory
             resp = self.send_command(u'get_modules', u'inventory')
             if not resp or resp[u'error']:
                 raise CommandError(u'Unable to get modules list from inventory')
             self.__modules = resp[u'data']
 
-            #iterate over modules
+            # iterate over modules
             modules_to_delete = []
             for module in self.__modules:
-                #locked module needs to be removed from list (system module updated by raspiot)
-                #like not installed modules
+                # locked module needs to be removed from list (system module updated by cleep)
+                # like not installed modules
                 if self.__modules[module][u'core'] or not self.__modules[module][u'installed']:
                     modules_to_delete.append(module)
-                
-                #append updatable/updating flags
+
+                # append updatable/updating flags
                 self.__modules[module][u'updatable'] = None
                 self.__modules[module][u'updating'] = module in self.__updating_modules
 
-            #remove system modules
+            # remove system modules
             for module in modules_to_delete:
                 self.__modules.pop(module)
-            #self.logger.debug(u'Modules list: %s' % self.__modules)
 
         return self.__modules
 
@@ -706,7 +709,7 @@ class System(RaspIotModule):
                     moduleslistupdated (bool): True if new modules available (it needs to reload all configuration)
                 }
         """
-        #get modules list from inventory
+        # get modules list from inventory
         modules = self.__get_modules()
         modules_json = self.modules_json.get_json()
         modules_count_before_update = 0
@@ -714,32 +717,32 @@ class System(RaspIotModule):
             modules_count_before_update = len(modules_json[u'list'])
         self.logger.debug(u'modules_count_before_update=%s' % modules_count_before_update)
 
-        #update latest modules.json file
+        # update latest modules.json file
         file_updated = False
         try:
             file_updated = self.modules_json.update()
             self.logger.debug(u'file_updated=%s' % file_updated)
         except:
-            #invalid modules.json
+            # invalid modules.json
             self.logger.error(u'Invalid modules.json file downloaded, unable to update modules')
             self.crash_report.manual_report('Invalid modules.json file downloaded')
             raise CommandError(u'Invalid modules file downloaded')
 
-        #check if new modules.json file version available
+        # check if new modules.json file version available
         modules_list_updated = False
         if file_updated:
-            #update modules.json
+            # update modules.json
             modules_json = self.modules_json.get_json()
 
-            #check if modules count changed
-            if modules_count_before_update!=len(modules_json[u'list']):
+            # check if modules count changed
+            if modules_count_before_update != len(modules_json[u'list']):
                 modules_list_updated = True
 
-            #reload modules list in inventory
+            # reload modules list in inventory
             self.logger.debug(u'Reloading modules in inventory')
             self.send_command(u'reload_modules', u'inventory', {}, 10.0)
 
-        #check for modules updates available
+        # check for modules updates available
         update_available = False
         for module in modules:
             try:
@@ -747,17 +750,21 @@ class System(RaspIotModule):
                 if module in modules_json[u'list']:
                     new_version = modules_json[u'list'][module][u'version']
                     if Tools.compare_versions(current_version, new_version):
-                        #new version available for current module
-                        self.logger.info('New version available for module "%s" (%s->%s)' % (module, current_version, new_version))
+                        # new version available for current module
+                        self.logger.info(
+                            'New version available for module "%s" (%s->%s)' % (module, current_version, new_version)
+                        )
                         modules[module][u'updatable'] = True
                         update_available = True
-    
+
                     else:
-                        self.logger.debug('No new version available for module "%s" (%s->%s)' % (module, current_version, new_version))
-            except:
+                        self.logger.debug(
+                            'No new version available for module "%s" (%s->%s)' % (module, current_version, new_version)
+                        )
+            except Exception:
                 self.logger.exception(u'Invalid "%s" module description in modules.json' % module)
 
-        #update config
+        # update config
         config = {
             u'modulesupdateavailable': update_available,
             u'lastcheckmodules': int(time.time())
@@ -770,170 +777,177 @@ class System(RaspIotModule):
             u'lastcheckmodules': config[u'lastcheckmodules']
         }
 
-    def check_raspiot_updates(self):
+    def check_cleep_updates(self):
         """
-        Check for available raspiot updates
+        Check for available cleep updates
 
-        Return:
+        Returns:
             dict: last update infos::
+
                 {
-                    raspiotupdateavailable (string): available version, None if no update available
-                    raspiotupdatechangelog (string): update changelog if new version available
-                    lastcheckraspiot (int): last raspiot update check timestamp
+                    cleepupdateavailable (string): available version, None if no update available
+                    cleepupdatechangelog (string): update changelog if new version available
+                    lastcheckcleep (int): last cleep update check timestamp
                 }
+
         """
-        #init
+        # init
         update_available = None
         update_changelog = u''
-        self.__raspiot_update[u'package'] = None
-        self.__raspiot_update[u'checksum'] = None
+        self.__cleep_update[u'package'] = None
+        self.__cleep_update[u'checksum'] = None
 
         try:
-            #get beta release if GITHUB_TOKEN env variable registered
+            # get beta release if GITHUB_TOKEN env variable registered
             github_token = None
             only_released = True
             if u'GITHUB_TOKEN' in os.environ:
                 github_token = os.environ[u'GITHUB_TOKEN']
                 only_released = False # used to get beta release
 
-            github = Github(github_token)
-            releases = github.get_releases(self.RASPIOT_GITHUB_OWNER, self.RASPIOT_GITHUB_REPO, only_latest=True, only_released=only_released)
-            if len(releases)==1:
-                #get latest version available
+            github = CleepGithub(github_token)
+            releases = github.get_releases(
+                self.CLEEP_GITHUB_OWNER,
+                self.CLEEP_GITHUB_REPO,
+                only_latest=True,
+                only_released=only_released
+            )
+            if len(releases) == 1:
+                # get latest version available
                 version = github.get_release_version(releases[0])
                 self._set_config_field('latestversion', version)
                 update_changelog = github.get_release_changelog(releases[0])
                 self.logger.debug(u'Update changelog: %s' % update_changelog)
 
                 self.logger.info('Cleep version status: %s(latest) - %s(installed)' % (version, VERSION))
-                if version!=VERSION:
-                    #new version available, trigger update
+                if version != VERSION:
+                    # new version available, trigger update
                     assets = github.get_release_assets_infos(releases[0])
 
-                    #search for deb file
+                    # search for deb file
                     for asset in assets:
-                        if asset[u'name'].startswith(u'raspiot_') and asset[u'name'].endswith('.zip'):
-                            self.logger.debug(u'Found raspiot package asset: %s' % asset)
-                            self.__raspiot_update[u'package'] = asset
+                        if asset[u'name'].startswith(u'cleep_') and asset[u'name'].endswith('.zip'):
+                            self.logger.debug(u'Found Cleep package asset: %s' % asset)
+                            self.__cleep_update[u'package'] = asset
                             break
 
-                    #search for checksum file
-                    if self.__raspiot_update[u'package'] is not None:
-                        package_name = os.path.splitext(self.__raspiot_update[u'package'][u'name'])[0]
+                    # search for checksum file
+                    if self.__cleep_update[u'package'] is not None:
+                        package_name = os.path.splitext(self.__cleep_update[u'package'][u'name'])[0]
                         checksum_name = u'%s.%s' % (package_name, u'sha256')
                         self.logger.debug(u'Checksum filename to search: %s' % checksum_name)
                         for asset in assets:
-                            if asset[u'name']==checksum_name:
+                            if asset[u'name'] == checksum_name:
                                 self.logger.debug(u'Found checksum asset: %s' % asset)
-                                self.__raspiot_update[u'checksum'] = asset
+                                self.__cleep_update[u'checksum'] = asset
                                 break
 
-                    if self.__raspiot_update[u'package'] and self.__raspiot_update[u'checksum']:
+                    if self.__cleep_update[u'package'] and self.__cleep_update[u'checksum']:
                         self.logger.info(u'Archive and checksum files found, can trigger update')
-                        self.logger.debug(u'raspiot_update: %s' % self.__raspiot_update)
+                        self.logger.debug(u'cleep_update: %s' % self.__cleep_update)
                         update_available = version
 
                 else:
-                    #already up-to-date
+                    # already up-to-date
                     update_changelog = u''
 
             else:
-                #no release found
+                # no release found
                 self.logger.warning(u'No release found during check')
 
         except:
             self.logger.exception(u'Error occured during updates checking:')
             self.crash_report.report_exception()
-            raise Exception(u'Error occured during raspiot update check')
+            raise Exception(u'Error occured during cleep update check')
 
-        #update config
+        # update config
         config = {
-            u'raspiotupdateavailable': update_available,
-            u'raspiotupdatechangelog': update_changelog,
-            u'lastcheckraspiot': int(time.time())
+            u'cleepupdateavailable': update_available,
+            u'cleepupdatechangelog': update_changelog,
+            u'lastcheckcleep': int(time.time())
         }
         self._update_config(config)
 
         return config
 
-    def __update_raspiot_callback(self, status):
+    def __update_cleep_callback(self, status):
         """
-        Raspiot update callback
+        Cleep update callback
 
         Args:
             status (dict): update status
         """
-        self.logger.debug(u'Raspiot update callback status: %s' % status)
+        self.logger.debug(u'Cleep update callback status: %s' % status)
 
-        #send process status (only status)
-        self.system_raspiot_update.send(params={u'status':status[u'status']})
+        # send process status (only status)
+        self.system_cleep_update.send(params={u'status':status[u'status']})
 
-        #save final status when update terminated (successfully or not)
-        if status[u'status']>=InstallRaspiot.STATUS_UPDATED:
+        # save final status when update terminated (successfully or not)
+        if status[u'status'] >= InstallCleep.STATUS_UPDATED:
             self.logger.debug(u'Store update result in config file')
             stdout = []
             stderr = []
 
-            #prescript
+            # prescript
             try:
                 if status[u'prescript'][u'returncode'] is not None:
                     stdout += [u'Pre-script output:']
-                    if len(status[u'prescript'][u'stdout'])>0:
+                    if len(status[u'prescript'][u'stdout']) > 0:
                         stdout += [u' '*4 + line for line in status[u'prescript'][u'stdout']]
                     else:
                         stdout += [u' '*4 + u'No output']
                     stdout += [u'', u'Pre-script return code: %s' % status[u'prescript'][u'returncode']]
                     stderr += [u'Pre-script errors']
-                    if len(status[u'prescript'][u'stderr'])>0:
+                    if len(status[u'prescript'][u'stderr']) > 0:
                         stderr += [u' '*4 + line for line in status[u'prescript'][u'stderr']]
                     else:
                         stderr += [u' '*4 + u'No error']
                 else:
                     stdout += [u'No pre-script found']
-            except:
+            except Exception:
                 self.logger.exception(u'Error saving prescript output:')
                 self.crash_report.report_exception()
 
-            #deb
+            # deb
             try:
                 if status[u'deb'][u'returncode'] is not None:
                     stdout += [u'', u'Package output:']
-                    if len(status[u'deb'][u'stdout'])>0:
+                    if len(status[u'deb'][u'stdout']) > 0:
                         stdout += [u' '*4 + line for line in status[u'deb'][u'stdout']]
                     else:
                         stdout += [u' '*4 + u'No output']
                     stdout += [u'', u'Package return code: %s' % status[u'deb'][u'returncode']]
-                    #stderr merge to stdout because dpkg and pip put some info on stderr
+                    # stderr merge to stdout because dpkg and pip put some info on stderr
                 else:
                     stdout += [u'', u'No package found']
-            except:
+            except Exception:
                 self.logger.exception(u'Error saving deb output:')
                 self.crash_report.report_exception()
 
-            #postscript
+            # postscript
             try:
                 if status[u'postscript'][u'returncode'] is not None:
                     stdout += [u'', u'Post-script output:']
-                    if len(status[u'postscript'][u'stdout'])>0:
+                    if len(status[u'postscript'][u'stdout']) > 0:
                         stdout += [u' '*4 + line for line in status[u'postscript'][u'stdout']]
                     else:
                         stdout += [u' '*4 + u'No output']
                     stdout += [u'', u'Post-script return code: %s' % status[u'postscript'][u'returncode']]
                     stderr += [u'', u'Post-script errors:']
-                    if len(status[u'postscript'][u'stderr'])>0:
+                    if len(status[u'postscript'][u'stderr']) > 0:
                         stderr += [u' '*4 + line for line in status[u'postscript'][u'stderr']]
                     else:
                         stderr += [u' '*4 + u'No error']
                 else:
                     stdout += [u'', u'No post-script found']
-            except:
+            except Exception:
                 self.logger.exception(u'Error saving postscript output:')
                 self.crash_report.report_exception()
 
-            #save update status
+            # save update status
             self._update_config({
-                u'raspiotupdateavailable': None,
-                u'lastraspiotupdate': {
+                u'cleepupdateavailable': None,
+                u'lastcleepupdate': {
                     u'status': status[u'status'],
                     u'time': int(time.time()),
                     u'stdout': stdout,
@@ -941,40 +955,38 @@ class System(RaspIotModule):
                 }
             })
 
-            #lock filesystem
+            # lock filesystem
             if self.cleep_filesystem:
                 self.cleep_filesystem.disable_write(True, True)
-    
-        #handle end of successful process to trigger restart
-        if status[u'status']==InstallRaspiot.STATUS_UPDATED:
-            #need to restart
+
+        # handle end of successful process to trigger restart
+        if status[u'status'] == InstallCleep.STATUS_UPDATED:
+            # need to restart
             self.restart(delay=1.0)
 
-    def update_raspiot(self):
+    def update_cleep(self):
         """
-        Update raspiot
+        Update Cleep
         """
-        #check params
-        if not self.__raspiot_update[u'package'] or not self.__raspiot_update[u'checksum']:
-            #user trigger raspiot update and there is no update infos. Check again
-            self.logger.debug('Raspiot update trigger while there is no update infos, check again')
-            res = self.check_raspiot_updates()
-            if not res[u'raspiotupdateavailable']:
-                #there is really no update available
-                raise CommandInfo(u'No raspiot update available')
-            else:
-                self.logger.debug('Finally an update is available, process it')
+        # check params
+        if not self.__cleep_update[u'package'] or not self.__cleep_update[u'checksum']:
+            # user trigger cleep update and there is no update infos. Check again
+            self.logger.debug('Cleep update trigger while there is no update infos, check again')
+            res = self.check_cleep_updates()
+            if not res[u'cleepupdateavailable']:
+                # there is really no update available
+                raise CommandInfo(u'No cleep update available')
+            self.logger.debug('Finally an update is available, process it')
 
-        #unlock filesystem
+        # unlock filesystem
         if self.cleep_filesystem:
             self.cleep_filesystem.enable_write(True, True)
 
-        #launch install
-        package_url = self.__raspiot_update[u'package'][u'url']
-        checksum_url = self.__raspiot_update[u'checksum'][u'url']
-        self.logger.debug('Update raspiot, package url: %s' % package_url)
-        self.logger.debug('Update raspiot, checksum url: %s' % checksum_url)
-        update = InstallRaspiot(package_url, checksum_url, self.__update_raspiot_callback, self.cleep_filesystem, self.crash_report)
+        # launch install
+        package_url = self.__cleep_update[u'package'][u'url']
+        checksum_url = self.__cleep_update[u'checksum'][u'url']
+        self.logger.trace(u'Update Cleep: package_url=%s checksum_url=%s' % (package_url, checksum_url))
+        update = InstallCleep(package_url, checksum_url, self.__update_cleep_callback, self.cleep_filesystem, self.crash_report)
         update.start()
 
         return True
@@ -985,24 +997,26 @@ class System(RaspIotModule):
 
         Returns:
             dict: memory usage::
+
                 {
-                    'total': <total memory in bytes (int)>',
-                    'available':<available memory in bytes (int)>,
-                    'availablehr':<human readble available memory (string)>,
-                    'raspiot': <raspiot process memory in bytes (float)>
+                    total (int): total memory in bytes
+                    available (int): available memory in bytes
+                    availablehr (string): human readable available memory
+                    cleep (float): cleep process memory in bytes
                 }
+
         """
         system = psutil.virtual_memory()
-        raspiot = self.__process.memory_info()[0]
+        cleep = self.__process.memory_info()[0]
         return {
             u'total': system.total,
-            #u'totalhr': Tools.hr_bytes(system.total),
+            # u'totalhr': Tools.hr_bytes(system.total),
             u'available': system.available,
             u'availablehr': Tools.hr_bytes(system.available),
-            #u'used_percent': system.percent,
-            u'raspiot': raspiot,
-            #u'raspiothr': Tools.hr_bytes(raspiot),
-            #u'others': system.total - system.available - raspiot
+            # u'used_percent': system.percent,
+            u'cleep': cleep,
+            # u'cleephr': Tools.hr_bytes(cleep),
+            # u'others': system.total - system.available - cleep
         }
 
     def get_cpu_usage(self):
@@ -1011,20 +1025,22 @@ class System(RaspIotModule):
 
         Returns:
             dict: cpu usage::
+
                 {
-                    'system': <system cpu usage percentage (float)>,
-                    'raspiot': <raspiot cpu usage percentage (float>)>
+                    system (float): system cpu usage percentage
+                    cleep (float): cleep cpu usage percentage
                 }
+
         """
         system = psutil.cpu_percent()
-        if system>100.0:
+        if system > 100.0:
             system = 100.0
-        raspiot = self.__process.cpu_percent()
-        if raspiot>100.0:
-            raspiot = 100.0
+        cleep = self.__process.cpu_percent()
+        if cleep > 100.0:
+            cleep = 100.0
         return {
             u'system': system,
-            u'raspiot': raspiot
+            u'cleep': cleep
         }
 
     def get_uptime(self):
@@ -1070,11 +1086,11 @@ class System(RaspIotModule):
 
     def __monitoring_cpu_thread(self):
         """
-        Read cpu usage 
+        Read cpu usage
         """
         config = self._get_config()
 
-        #send event if monitoring activated
+        # send event if monitoring activated
         if config[u'monitoring']:
             self.system_monitoring_cpu.send(params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid)
 
@@ -1086,12 +1102,12 @@ class System(RaspIotModule):
         config = self._get_config()
         memory = self.get_memory_usage()
 
-        #detect memory leak
+        # detect memory leak
         percent = (float(memory[u'total'])-float(memory[u'available']))/float(memory[u'total'])*100.0
-        if percent>=self.THRESHOLD_MEMORY:
+        if percent >= self.THRESHOLD_MEMORY:
             self.system_alert_memory.send(params={u'percent':percent, u'threshold':self.THRESHOLD_MEMORY})
 
-        #send event if monitoring activated
+        # send event if monitoring activated
         if config[u'monitoring']:
             self.system_monitoring_memory.send(params=memory, device_id=self.__monitor_memory_uuid)
 
@@ -1102,12 +1118,18 @@ class System(RaspIotModule):
         """
         disks = self.get_filesystem_infos()
         for disk in disks:
-            if disk[u'mounted']:
-                if disk[u'mountpoint']==u'/' and disk[u'percent']>=self.THRESHOLD_DISK_SYSTEM:
-                    self.system_alert_disk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DISK_SYSTEM, u'mountpoint':disk[u'mountpoint']})
+            if not disk[u'mounted']:
+                continue
 
-                elif disk[u'mountpoint'] not in (u'/', u'/boot') and disk[u'percent']>=self.THRESHOLD_DISK_EXTERNAL:
-                    self.system_alert_disk.send(params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DIST_EXTERNAL, u'mountpoint':disk[u'mountpoint']})
+            if disk[u'mountpoint'] == u'/' and disk[u'percent'] >= self.THRESHOLD_DISK_SYSTEM:
+                self.system_alert_disk.send(
+                    params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DISK_SYSTEM, u'mountpoint':disk[u'mountpoint']}
+                )
+
+            elif disk[u'mountpoint'] not in (u'/', u'/boot') and disk[u'percent'] >= self.THRESHOLD_DISK_EXTERNAL:
+                self.system_alert_disk.send(
+                    params={u'percent':disk[u'percent'], u'threshold':self.THRESHOLD_DISK_EXTERNAL, u'mountpoint':disk[u'mountpoint']}
+                )
 
     def get_filesystem_infos(self):
         """
@@ -1132,21 +1154,21 @@ class System(RaspIotModule):
                     ...
                 ]
         """
-        #get mounted partitions and all devices
+        # get mounted partitions and all devices
         fstab = Fstab(self.cleep_filesystem)
         mounted_partitions = fstab.get_mountpoints()
         self.logger.debug(u'mounted_partitions=%s' % mounted_partitions)
         all_devices = fstab.get_all_devices()
         self.logger.debug(u'all_devices=%s' % all_devices)
 
-        #build output
+        # build output
         fsinfos = []
         for device in all_devices:
-            #check if partition is mounted
+            # check if partition is mounted
             mounted = {u'mounted':False, u'mountpoint':u'', u'mounttype':'-', u'options':'', u'uuid':None}
             system = False
             for partition in mounted_partitions:
-                if mounted_partitions[partition][u'device']==device:
+                if mounted_partitions[partition][u'device'] == device:
                     mounted[u'mounted'] = True
                     mounted[u'mountpoint'] = mounted_partitions[partition][u'mountpoint']
                     mounted[u'device'] = mounted_partitions[partition][u'device']
@@ -1156,17 +1178,17 @@ class System(RaspIotModule):
                     if mounted_partitions[partition][u'mountpoint'] in (u'/', u'/boot'):
                         system = True
 
-            #get mounted partition usage
+            # get mounted partition usage
             usage = {u'total':0, u'used':0, u'free':0, u'percent':0.0}
             if mounted[u'mounted']:
                 sdiskusage = psutil.disk_usage(mounted[u'mountpoint'])
-                self.logger.debug(u'diskusage for %s: %s' % (device, sdiskusage));
+                self.logger.debug(u'diskusage for %s: %s' % (device, sdiskusage))
                 usage[u'total'] = sdiskusage.total
                 usage[u'used'] = sdiskusage.used
                 usage[u'free'] = sdiskusage.free
                 usage[u'percent'] = sdiskusage.percent
 
-            #fill infos
+            # fill infos
             fsinfos.append({
                 u'device': device,
                 u'uuid': mounted[u'uuid'],
@@ -1195,27 +1217,26 @@ class System(RaspIotModule):
             Exception: if error occured
         """
         if os.path.exists(self.log_file):
-            #log file exists
+            # log file exists
 
-            #zip it
-            fd = NamedTemporaryFile(delete=False)
-            log_filename = fd.name
+            # zip it
+            file_descriptor = NamedTemporaryFile(delete=False)
+            log_filename = file_descriptor.name
             self.logger.debug(u'Zipped log filename: %s' % log_filename)
-            archive = ZipFile(fd, u'w', ZIP_DEFLATED)
-            archive.write(self.log_file, u'raspiot.log')
+            archive = ZipFile(file_descriptor, u'w', ZIP_DEFLATED)
+            archive.write(self.log_file, u'cleep.log')
             archive.close()
 
             now = datetime.now()
-            filename = u'raspiot_%d%02d%02d_%02d%02d%02d.zip' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+            filename = u'cleep_%d%02d%02d_%02d%02d%02d.zip' % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
             return {
                 u'filepath': log_filename,
                 u'filename': filename
             }
 
-        else:
-            #file doesn't exist, raise exception
-            raise Exception(u'Logs file doesn\'t exist')
+        # file doesn't exist, raise exception
+        raise Exception(u'Logs file doesn\'t exist')
 
     def get_logs(self):
         """
@@ -1249,13 +1270,13 @@ class System(RaspIotModule):
         if trace is None:
             raise MissingParameter(u'Parameter "trace" is missing')
 
-        #save log level in conf file
+        # save log level in conf file
         if trace:
-            self.raspiot_conf.enable_trace()
+            self.cleep_conf.enable_trace()
         else:
-            self.raspiot_conf.disable_trace()
+            self.cleep_conf.disable_trace()
 
-        #send event raspiot needs to be restarted
+        # send event cleep needs to be restarted
         self.__need_restart = True
         self.system_need_restart.send()
 
@@ -1273,12 +1294,12 @@ class System(RaspIotModule):
             self.events_broker.logger.setLevel(logging.DEBUG)
             self.cleep_filesystem.logger.setLevel(logging.DEBUG)
 
-            self.raspiot_conf.enable_system_debug()
+            self.cleep_conf.enable_system_debug()
         else:
             self.events_broker.logger.setLevel(logging.INFO)
             self.cleep_filesystem.logger.setLevel(logging.INFO)
 
-            self.raspiot_conf.disable_system_debug()
+            self.cleep_conf.disable_system_debug()
 
     def set_module_debug(self, module, debug):
         """
@@ -1288,25 +1309,25 @@ class System(RaspIotModule):
             module (string): module name
             debug (bool): enable debug
         """
-        if module is None or len(module)==0:
+        if module is None or len(module) == 0:
             raise MissingParameter(u'Parameter "module" is missing')
         if debug is None:
             raise MissingParameter(u'Parameter "debug" is missing')
 
-        #save log level in conf file
+        # save log level in conf file
         if debug:
-            self.raspiot_conf.enable_module_debug(module)
+            self.cleep_conf.enable_module_debug(module)
         else:
-            self.raspiot_conf.disable_module_debug(module)
+            self.cleep_conf.disable_module_debug(module)
 
-        #set debug on module
-        if module==u'rpc':
-            #specific command for rpcserver
+        # set debug on module
+        if module == u'rpc':
+            # specific command for rpcserver
             resp = self.send_command(u'set_rpc_debug', u'inventory', {u'debug':debug})
         else:
             resp = self.send_command(u'set_debug', module, {u'debug':debug})
 
-        #process command response
+        # process command response
         if not resp:
             self.logger.error(u'No response')
             raise CommandError(u'No response from "%s" module' % module)
@@ -1332,9 +1353,9 @@ class System(RaspIotModule):
         Return:
             list: list of events not rendered
         """
-        if renderer is None or len(renderer)==0:
+        if renderer is None or len(renderer) == 0:
             raise MissingParameter(u'Renderer parameter is missing')
-        if event is None or len(event)==0:
+        if event is None or len(event) == 0:
             raise MissingParameter(u'Event parameter is missing')
         if disabled is None:
             raise MissingParameter(u'Disabled parameter is missing')
@@ -1344,15 +1365,15 @@ class System(RaspIotModule):
         events_not_rendered = self._get_config_field(u'eventsnotrendered')
         key = '%s__%s' % (renderer, event)
         if key in events_not_rendered and not disabled:
-            #enable renderer event
+            # enable renderer event
             events_not_rendered.remove(key)
         else:
-            #disable renderer event
+            # disable renderer event
             events_not_rendered.append(key)
         if not self._set_config_field(u'eventsnotrendered', events_not_rendered):
             raise CommandError(u'Unable to save configuration')
 
-        #configure events factory with new events to not render
+        # configure events factory with new events to not render
         self.__update_events_not_rendered_in_factory()
 
         return self.get_events_not_rendered()
@@ -1373,7 +1394,7 @@ class System(RaspIotModule):
         """
         config = self._get_config()
 
-        #split items to get renderer and event splitted
+        # split items to get renderer and event splitted
         events_not_rendered = []
         for item in config[u'eventsnotrendered']:
             (renderer, event) = item.split(u'__')
@@ -1400,36 +1421,36 @@ class System(RaspIotModule):
         if enable is None:
             raise MissingParameter(u'Parameter "enable" is missing')
 
-        #save config
+        # save config
         if not self._set_config_field(u'crashreport', enable):
             raise CommandError(u'Unable to save crash report value')
-            
-        #configure crash report
+
+        # configure crash report
         self.__configure_crash_report(enable)
 
         return True
 
-    def backup_raspiot_config(self):
+    def backup_cleep_config(self):
         """
-        Backup raspiot configuration files on filesystem
+        Backup Cleep configuration files on filesystem
 
         Returns:
             bool: True if backup successful
         """
-        self.logger.debug(u'Backup raspiot configuration')
+        self.logger.debug(u'Backup Cleep configuration')
         return self.cleep_backup.backup()
 
-    def set_raspiot_backup_delay(self, delay):
+    def set_cleep_backup_delay(self, delay):
         """
-        Set raspiot backup delay
+        Set Cleep backup delay
 
         Args:
             minute (int): delay in minutes (5..60)
         """
-        #check params
+        # check params
         if delay is None:
             raise MissingParameter(u'Parameter "delay" must be specified')
-        if delay<5 or delay>60:
+        if delay < 5 or delay > 60:
             raise MissingParameter(u'Parameter "delay" must be 0..60')
 
         res = self._set_config_field(u'cleepbackupdelay', delay)
@@ -1457,10 +1478,10 @@ class System(RaspIotModule):
         }
         self.logger.debug(u'Driver install terminated: %s' % data)
 
-        #send event
+        # send event
         self.system_driver_install.send(data)
 
-        #reboot device if install succeed
+        # reboot device if install succeed
         if success:
             self.reboot_system()
 
@@ -1479,13 +1500,13 @@ class System(RaspIotModule):
             InvalidParameter: if driver was not found
             CommandError: if command failed
         """
-        #check parameters
-        if driver_type is None or len(driver_type)==0:
+        # check parameters
+        if driver_type is None or len(driver_type) == 0:
             raise MissingParameter(u'Parameter "driver_type" is missing')
-        if driver_name is None or len(driver_name)==0:
+        if driver_name is None or len(driver_name) == 0:
             raise MissingParameter(u'Parameter "driver_name" is missing')
 
-        #get driver
+        # get driver
         driver = self.drivers.get_driver(driver_type, driver_name)
         if not driver:
             raise InvalidParameter(u'No driver found for specified parameters')
@@ -1493,7 +1514,7 @@ class System(RaspIotModule):
         if not force and driver.is_installed():
             raise CommandError(u'Driver is already installed')
 
-        #launch installation (non blocking) and send event
+        # launch installation (non blocking) and send event
         driver.install(self._install_driver_terminated, logger=self.logger)
         self.system_driver_install.send({
             u'drivertype': driver_type,
@@ -1524,10 +1545,10 @@ class System(RaspIotModule):
         }
         self.logger.debug(u'Uninstall driver terminated: %s' % data)
 
-        #send event
+        # send event
         self.system_driver_uninstall.send(data)
 
-        #reboot device if uninstall succeed
+        # reboot device if uninstall succeed
         if success:
             self.reboot_system()
 
@@ -1545,13 +1566,13 @@ class System(RaspIotModule):
             InvalidParameter: if driver was not found
             CommandError: if command failed
         """
-        #check parameters
-        if driver_type is None or len(driver_type)==0:
+        # check parameters
+        if driver_type is None or len(driver_type) == 0:
             raise MissingParameter(u'Parameter "driver_type" is missing')
-        if driver_name is None or len(driver_name)==0:
+        if driver_name is None or len(driver_name) == 0:
             raise MissingParameter(u'Parameter "driver_name" is missing')
 
-        #get driver
+        # get driver
         driver = self.drivers.get_driver(driver_type, driver_name)
         if not driver:
             raise InvalidParameter(u'No driver found for specified parameters')
@@ -1559,7 +1580,7 @@ class System(RaspIotModule):
         if not driver.is_installed():
             raise CommandError(u'Driver is not installed')
 
-        #launch uninstallation (non blocking) and send event
+        # launch uninstallation (non blocking) and send event
         driver.uninstall(self._uninstall_driver_terminated, logger=self.logger)
         self.system_driver_uninstall.send({
             u'drivertype': driver_type,

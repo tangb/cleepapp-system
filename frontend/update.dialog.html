@@ -16,14 +16,14 @@
 				<md-list>
 	                <!-- header -->
     	            <md-list-item>
-        	            <p>You're going to update Cleep v{{updateCtl.version}} to v{{updateCtl.raspiotUpdateAvailable}}.</p>
+        	            <p>You're going to update Cleep v{{updateCtl.version}} to v{{updateCtl.cleepUpdateAvailable}}.</p>
             	    </md-list-item>
 
     	            <!-- changelog -->
         	        <md-subheader style="background-color:white;" class="md-subheader-inner">What's new</md-subheader>
             	    <md-list-item>
-                	    <span ng-if="updateCtl.raspiotUpdateChangelog.length>0" ng-bind="updateCtl.raspiotUpdateChangelog" style="white-space: pre-wrap;"></span>
-	                    <span ng-if="!updateCtl.raspiotUpdateChangelog || updateCtl.raspiotUpdateChangelog.length===0">No changelog provided</span>
+                	    <span ng-if="updateCtl.cleepUpdateChangelog.length>0" ng-bind="updateCtl.cleepUpdateChangelog" style="white-space: pre-wrap;"></span>
+	                    <span ng-if="!updateCtl.cleepUpdateChangelog || updateCtl.cleepUpdateChangelog.length===0">No changelog provided</span>
     	            </md-list-item>
 
 				</md-list>
@@ -36,7 +36,7 @@
                 <md-icon md-svg-icon="close-circle"></md-icon>
                 Cancel
             </md-button>
-            <md-button ng-click="updateCtl.updateRaspiot()" class="md-accent">
+            <md-button ng-click="updateCtl.updateCleep()" class="md-accent">
                 <md-icon md-svg-icon="plus-circle"></md-icon>
                 Update
             </md-button>

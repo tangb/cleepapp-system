@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from raspiot.libs.internals.event import Event
+from cleep.libs.internals.event import Event
 
 class SystemSystemRestartEvent(Event):
     """
@@ -13,14 +13,13 @@ class SystemSystemRestartEvent(Event):
     EVENT_SYSTEM = True
     EVENT_PARAMS = [u'delay']
 
-    def __init__(self, bus, formatters_factory, events_broker):
+    def __init__(self, bus, formatters_factory):
         """ 
         Constructor
 
         Args:
             bus (MessageBus): message bus instance
             formatters_factory (FormattersFactory): formatters factory instance
-            events_broker (EventsBroker): events broker instance
         """
-        Event.__init__(self, bus, formatters_factory, events_broker)
+        Event.__init__(self, bus, formatters_factory)
 

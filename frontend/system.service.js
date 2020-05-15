@@ -2,10 +2,10 @@
  * System service
  * Handle system module requests
  */
-var systemService = function($rootScope, rpcService, raspiotService, toast, appToolbarService)
+var systemService = function($rootScope, rpcService, cleepService, toast, appToolbarService)
 {
     var self = this;
-    self.raspiotInstallStatus = 0; //idle status
+    self.cleepInstallStatus = 0; //idle status
     self.modulesInstallStatus = {};
     self.restartButtonId = null;
     self.rebootButtonId = null;
@@ -44,7 +44,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     };
 
     /**
-     * Restart raspiot
+     * Restart cleep
      */
     self.restart = function()
     {
@@ -75,11 +75,11 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     };
 
     /**
-     * Update raspiot
+     * Update cleep
      */
-    self.updateRaspiot = function()
+    self.updateCleep = function()
     {
-        return rpcService.sendCommand('update_raspiot', 'system', null, 300);
+        return rpcService.sendCommand('update_cleep', 'system', null, 300);
     };
 
     /**
@@ -129,7 +129,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     {
         return rpcService.sendCommand('set_trace', 'system', {'trace':trace})
             .then(function() {
-                return raspiotService.reloadModuleConfig('system');
+                return cleepService.reloadModuleConfig('system');
             });
     };
 
@@ -149,16 +149,16 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         return rpcService.sendCommand('set_event_not_rendered', 'system', {'renderer':renderer, 'event':event, 'disabled':disabled})
             .then(function(resp) {
                 //overwrite system event_not_rendered config value
-                raspiotService.modules.system.config.eventsnotrendered = resp.data;
+                cleepService.modules.system.config.eventsnotrendered = resp.data;
             });
     };
 
     /**
-     * Check for raspiot updates
+     * Check for cleep updates
      */
-    self.checkRaspiotUpdates = function()
+    self.checkCleepUpdates = function()
     {
-        return rpcService.sendCommand('check_raspiot_updates', 'system');
+        return rpcService.sendCommand('check_cleep_updates', 'system');
     };
 
     /**
@@ -172,9 +172,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     /**
      * Set automatic update
      */
-    self.setAutomaticUpdate = function(raspiotUpdateEnabled, modulesUpdateEnabled)
+    self.setAutomaticUpdate = function(cleepUpdateEnabled, modulesUpdateEnabled)
     {
-        return rpcService.sendCommand('set_automatic_update', 'system', {'raspiot_update_enabled':raspiotUpdateEnabled, 'modules_update_enabled':modulesUpdateEnabled});
+        return rpcService.sendCommand('set_automatic_update', 'system', {'cleep_update_enabled':cleepUpdateEnabled, 'modules_update_enabled':modulesUpdateEnabled});
     };
 
     /**
@@ -188,17 +188,17 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
     /**
      * Set backup update time
      */
-    self.setRaspiotBackupDelay = function(delay)
+    self.setCleepBackupDelay = function(delay)
     {
-        return rpcService.sendCommand('set_raspiot_backup_delay', 'system', {'delay': delay});
+        return rpcService.sendCommand('set_cleep_backup_delay', 'system', {'delay': delay});
     };
 
     /**
-     * Make backup of raspiot configuration files
+     * Make backup of cleep configuration files
      */
-    self.backupRaspiotConfig = function()
+    self.backupCleepConfig = function()
     {
-        return rpcService.sendCommand('backup_raspiot_config', 'system', {});
+        return rpcService.sendCommand('backup_cleep_config', 'system', {});
     };
 
     /**
@@ -208,9 +208,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      */
     self.updateModulePendingStatus = function(module, pending)
     {   
-        //update pending status in raspiotService
-        if( raspiotService.modules[module] ) {
-            raspiotService.modules[module].pending = pending;
+        //update pending status in cleepService
+        if( cleepService.modules[module] ) {
+            cleepService.modules[module].pending = pending;
         }
     };
 
@@ -221,9 +221,9 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      */
     self.updateModuleProcessingStatus = function(module, processing)
     {
-        //update pending status in raspiotService
-        if( raspiotService.modules[module] ) {
-            raspiotService.modules[module].processing = processing;
+        //update pending status in cleepService
+        if( cleepService.modules[module] ) {
+            cleepService.modules[module].processing = processing;
         }
     };
 
@@ -232,7 +232,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      */
     $rootScope.$watchCollection(
         function() {
-            return raspiotService.modules['system'];
+            return cleepService.modules['system'];
         },
         function(newConfig) {
             if( !angular.isUndefined(newConfig) && newConfig.config )
@@ -245,7 +245,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 }
                 else if( newConfig.config.needrestart && !self.restartButtonId )
                 {
-                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', raspiotService.restart, 'md-accent');
+                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', cleepService.restart, 'md-accent');
                 }
 
                 //handle reboot button
@@ -256,7 +256,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
                 }
                 else if( newConfig.config.needreboot && !self.rebootButtonId )
                 {
-                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', raspiotService.reboot, 'md-accent');
+                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', cleepService.reboot, 'md-accent');
                 }
 
                 //store monitoring flag to display or not monitor widget
@@ -269,11 +269,11 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      * Catch cpu monitoring event
      */
     $rootScope.$on('system.monitoring.cpu', function(event, uuid, params) {
-        for( var i=0; i<raspiotService.devices.length; i++ )
+        for( var i=0; i<cleepService.devices.length; i++ )
         {
-            if( raspiotService.devices[i].type==='monitor' )
+            if( cleepService.devices[i].type==='monitor' )
             {
-                raspiotService.devices[i].cpu = params;
+                cleepService.devices[i].cpu = params;
                 break;
             }
         }
@@ -283,26 +283,26 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
      * Catch memory monitoring event
      */
     $rootScope.$on('system.monitoring.memory', function(event, uuid, params) {
-        for( var i=0; i<raspiotService.devices.length; i++ )
+        for( var i=0; i<cleepService.devices.length; i++ )
         {
-            if( raspiotService.devices[i].type==='monitor' )
+            if( cleepService.devices[i].type==='monitor' )
             {
-                raspiotService.devices[i].memory = params;
+                cleepService.devices[i].memory = params;
                 break;
             }
         }
     });
 
     /**
-     * Handle raspiot update event
+     * Handle cleep update event
      */
-    $rootScope.$on('system.raspiot.update', function(event, uuid, params) {
+    $rootScope.$on('system.cleep.update', function(event, uuid, params) {
         if( params.status===null || params.status===undefined )
         {
             return;
         }
 
-        self.raspiotInstallStatus = params.status;
+        self.cleepInstallStatus = params.status;
         if( params.status==0 || params.status==1 )
         {
             //idle status or installing update
@@ -311,13 +311,13 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         {   
             toast.success('Cleep has been updated successfully. Device will reboot.');
             //reset install status to remove item from ui
-            self.raspiotInstallStatus = 0;
+            self.cleepInstallStatus = 0;
         }   
         else
         {   
             toast.error('Error during Cleep update. See logs for details.');
             //reset install status to remove item from ui
-            self.raspiotInstallStatus = 0;
+            self.cleepInstallStatus = 0;
         }   
     });
 
@@ -345,7 +345,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		else if( params.status===2 )
 		{
 	        //error occured during module install, reload config to get install outputs
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update processing status to false
                     self.updateModuleProcessingStatus(params.module, null);
@@ -357,7 +357,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         else if( params.status===3 )
         {
             //module installed successfully, reload config to get clean modules list updated
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update pending+processing status
                     self.updateModuleProcessingStatus(params.module, null);
@@ -392,7 +392,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		else if( params.status===2 )
 		{
 	        //error occured during module update, reload config to get install outputs
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update processing status to false
                     self.updateModuleProcessingStatus(params.module, null);
@@ -404,7 +404,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         else if( params.status===3 )
         {
             //module updated successfully, reload config to get clean modules list updated
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update pending+processing status
                     self.updateModuleProcessingStatus(params.module, null);
@@ -439,7 +439,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 		else if( params.status===2 )
 		{
 	        //error occured during module uninstall, reload config to get uninstall outputs
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update processing status to false
                     self.updateModuleProcessingStatus(params.module, null);
@@ -451,7 +451,7 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
         else if( params.status===3 )
         {
             //module uninstalled successfully, reload config to get clean modules list updated
-            raspiotService.loadConfig()
+            cleepService.loadConfig()
                 .then(function() {
                     //update pending+processing status
                     self.updateModuleProcessingStatus(params.module, null);
@@ -465,6 +465,6 @@ var systemService = function($rootScope, rpcService, raspiotService, toast, appT
 
 };
     
-var RaspIot = angular.module('RaspIot');
-RaspIot.service('systemService', ['$rootScope', 'rpcService', 'raspiotService', 'toastService', 'appToolbarService', systemService]);
+var Cleep = angular.module('Cleep');
+Cleep.service('systemService', ['$rootScope', 'rpcService', 'cleepService', 'toastService', 'appToolbarService', systemService]);
 

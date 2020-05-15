@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from raspiot.libs.internals.event import Event
+from cleep.libs.internals.event import Event
 
 class SystemMonitoringCpuEvent(Event):
     """
@@ -10,19 +10,18 @@ class SystemMonitoringCpuEvent(Event):
 
     EVENT_NAME = u'system.monitoring.cpu'
     EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'system', u'raspiot']
+    EVENT_PARAMS = [u'system', u'cleep']
     EVENT_CHARTABLE = True
 
-    def __init__(self, bus, formatters_broker, events_broker):
+    def __init__(self, bus, formatters_broker):
         """ 
         Constructor
 
         Args:
             bus (MessageBus): message bus instance
             formatters_broker (FormattersBroker): formatters broker instance
-            events_broker (EventsBroker): events broker instance
         """
-        Event.__init__(self, bus, formatters_broker, events_broker)
+        Event.__init__(self, bus, formatters_broker)
 
     def get_chart_values(self, params):
         """
@@ -43,15 +42,15 @@ class SystemMonitoringCpuEvent(Event):
                 ]
              
         """
-        raspiot = float(params[u'raspiot'])
+        cleep = float(params[u'cleep'])
         system = float(params[u'system'])
-        others = float('{0:.2f}'.format(system - raspiot))
+        others = float('{0:.2f}'.format(system - cleep))
         if others<0.0:
             others = 0.0 
-        idle = 100.0 - raspiot - others
+        idle = 100.0 - cleep - others
 
         return [
-            {u'field': u'raspiot', u'value': raspiot},
+            {u'field': u'cleep', u'value': cleep},
             {u'field': u'others', u'value': others},
             {u'field': u'idle', u'value': idle}
         ]

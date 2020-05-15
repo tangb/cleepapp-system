@@ -10,7 +10,7 @@
  *  - names (string): comma separated list of names to filter on
  *  - header (string): header title of list (default "Drivers"). Set empty string to remove header
  */
-var driversDirective = function($rootScope, rpcService, raspiotService, confirmService, toastService) {
+var driversDirective = function($rootScope, rpcService, cleepService, confirmService, toastService) {
 
     var driversController = ['$scope', function($scope) {
         var self = this;
@@ -25,7 +25,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
         self.init = function()
         {
             //fill drivers according to specified filters
-            raspiotService.getDrivers()
+            cleepService.getDrivers()
                 .then(function(drivers) {
                     self.setDrivers(drivers);
                 });
@@ -79,7 +79,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
          * Watch for config changes
          */
         $rootScope.$watchCollection(function() {
-            return raspiotService.drivers;
+            return cleepService.drivers;
         }, function(newDrivers, oldDrivers) {
             if( newDrivers )
             {   
@@ -91,7 +91,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
          * Watch for driver install event
          */
         $rootScope.$on('system.driver.install', function(event, uuid, params) {
-            raspiotService.reloadDrivers();
+            cleepService.reloadDrivers();
             if( params && params.success===true )
             {
                 toastService.success('Driver installed successfully');
@@ -107,7 +107,7 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
          * Watch for driver install event
          */
         $rootScope.$on('system.driver.uninstall', function(event, uuid, params) {
-            raspiotService.reloadDrivers();
+            cleepService.reloadDrivers();
             if( params && params.success===true )
             {
                 toastService.success('Driver uninstalled successfully');
@@ -145,6 +145,6 @@ var driversDirective = function($rootScope, rpcService, raspiotService, confirmS
 
 };
     
-var RaspIot = angular.module('RaspIot');
-RaspIot.directive('drivers', ['$rootScope', 'rpcService', 'raspiotService', 'confirmService', 'toastService', driversDirective]);
+var Cleep = angular.module('Cleep');
+Cleep.directive('drivers', ['$rootScope', 'rpcService', 'cleepService', 'confirmService', 'toastService', driversDirective]);
 

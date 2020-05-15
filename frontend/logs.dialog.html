@@ -16,17 +16,17 @@
 				<md-list>
 	                <!-- header -->
     	            <md-list-item>
-        	            <p>Last update occured {{updateLogsCtl.lastRaspiotUpdate.time | hrDatetime}}.</p>
+        	            <p>Last update occured {{updateLogsCtl.lastCleepUpdate.time | hrDatetime}}.</p>
             	    </md-list-item>
                 	<md-list-item>
-                    	<p ng-if="updateLogsCtl.lastRaspiotUpdate.status===2">Cleep was updated successfully.</p>
-	                    <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===3">Cleep update failed because of an internal error (see logs below).</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===4">Cleep update failed because of an error during checksum file download.</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===5">Cleep update failed because of an error during application package download.</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===6">Cleep update failed because of application package extraction error.</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===7">Cleep update failed because of error during pre-installation script execution.</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===8">Cleep update failed because of error during application package installation.</p>
-    	                <p ng-if="updateLogsCtl.lastRaspiotUpdate.status===9">Cleep update failed because of error during post-installation script execution.</p>
+                    	<p ng-if="updateLogsCtl.lastCleepUpdate.status===2">Cleep was updated successfully.</p>
+	                    <p ng-if="updateLogsCtl.lastCleepUpdate.status===3">Cleep update failed because of an internal error (see logs below).</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===4">Cleep update failed because of an error during checksum file download.</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===5">Cleep update failed because of an error during application package download.</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===6">Cleep update failed because of application package extraction error.</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===7">Cleep update failed because of error during pre-installation script execution.</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===8">Cleep update failed because of error during application package installation.</p>
+    	                <p ng-if="updateLogsCtl.lastCleepUpdate.status===9">Cleep update failed because of error during post-installation script execution.</p>
         	        </md-list-item>
 
 	                <!-- process -->
@@ -38,13 +38,13 @@
 	                <!-- scripts output -->
     	            <md-subheader style="background-color:white;" class="md-subheader-inner">Standard output</md-subheader>
         	        <md-list-item>
-            	        <code>{{updateLogsCtl.lastRaspiotUpdate.stdoutStr}}</code>
+            	        <code>{{updateLogsCtl.lastCleepUpdate.stdoutStr}}</code>
                 	</md-list-item>
 
 	                <!-- scripts error -->
     	            <md-subheader style="background-color:white;" class="md-subheader-inner">Errors output</md-subheader>
         	        <md-list-item>
-            	        <code>{{updateLogsCtl.lastRaspiotUpdate.stderrStr}}</code>
+            	        <code>{{updateLogsCtl.lastCleepUpdate.stderrStr}}</code>
                 	</md-list-item>
 	            </md-list>
 

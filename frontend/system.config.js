@@ -2,7 +2,7 @@
  * System config directive
  * Handle system configuration
  */
-var systemConfigDirective = function($filter, $timeout, $q, toast, systemService, raspiotService, confirm, $mdDialog, $location)
+var systemConfigDirective = function($rootScope, $filter, $timeout, $q, toast, systemService, cleepService, confirm, $mdDialog, $location)
 {
     var systemController = ['$scope', function($scope)
     {
@@ -29,18 +29,18 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         self.debugTrace = false;
         self.renderings = [];
         self.eventsNotRendered = [];
-        self.raspiotUpdateEnabled = false;
+        self.cleepUpdateEnabled = false;
         self.modulesUpdateEnabled = false;
-        self.raspiotUpdateAvailable = null;
-        self.raspiotUpdateChangelog = null;
+        self.cleepUpdateAvailable = null;
+        self.cleepUpdateChangelog = null;
         self.modulesUpdateAvailable = false;
-        self.lastRaspiotUpdate = null;
-        self.lastCheckRaspiot = null;
+        self.lastCleepUpdate = null;
+        self.lastCheckCleep = null;
         self.lastCheckModules = null;
         self.version = '';
         self.crashReport = false;
         self.lastModulesProcessing = {};
-        self.raspiotUpdatePending = false;
+        self.cleepUpdatePending = false;
         self.backupDelay = 15;
 
         /************
@@ -53,9 +53,9 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         self.setAutomaticUpdate = function(row)
         {
             //toggle value if row clicked
-            if( row==='raspiot' )
+            if( row==='cleep' )
             {
-                self.raspiotUpdateEnabled = !self.raspiotUpdateEnabled;
+                self.cleepUpdateEnabled = !self.cleepUpdateEnabled;
             }
             else if( row==='modules' )
             {
@@ -63,7 +63,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             }
 
             //perform update
-            systemService.setAutomaticUpdate(self.raspiotUpdateEnabled, self.modulesUpdateEnabled)
+            systemService.setAutomaticUpdate(self.cleepUpdateEnabled, self.modulesUpdateEnabled)
                 .then(function(resp) {
                     if( resp.data===true )
                     {
@@ -77,15 +77,15 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         };
 
         /**
-         * Check for raspiot updates
+         * Check for cleep updates
          */
-        self.checkRaspiotUpdates = function() {
-            toast.loading('Checking raspiot update...');
+        self.checkCleepUpdates = function() {
+            toast.loading('Checking cleep update...');
             var message = null;
-            systemService.checkRaspiotUpdates()
+            systemService.checkCleepUpdates()
                 .then(function(resp) {
                      
-                    if( resp.data.raspiotupdateavailable===null )
+                    if( resp.data.cleepupdateavailable===null )
                     {
                         message = 'No update available';
                     }
@@ -95,7 +95,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
                     }
 
                     //refresh system module config
-                    return raspiotService.reloadModuleConfig('system');
+                    return cleepService.reloadModuleConfig('system');
                 })
                 .then(function(config) {
                     //set config
@@ -135,7 +135,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
                         message = 'No update available';
                     }
 
-                    return raspiotService.loadConfig();
+                    return cleepService.loadConfig();
                 })
                 .finally(function() {
                     if( message )
@@ -185,18 +185,18 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         };
 
         /**
-         * Update raspiot
+         * Update cleep
          */
-        self.updateRaspiot = function() {
+        self.updateCleep = function() {
             toast.loading('Updating device application...');
-            systemService.updateRaspiot();
+            systemService.updateCleep();
         };
 
         /** 
          * Watch for config changes
          */
         $rootScope.$watchCollection(function() {
-            return raspiotService.modules['system'];
+            return cleepService.modules['system'];
         }, function(newConfig, oldConfig) {
             if( newConfig )
             {   
@@ -213,7 +213,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
          * Trigger configuration backup
          */
         self.backupConfiguration = function() {
-            systemService.backupRaspiotConfig()
+            systemService.backupCleepConfig()
                 .then(function() {
                     toast.success('Configuration saved');
                 });
@@ -223,7 +223,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
          * Set backup config delay
          */
         self.setBackupDelay = function() {
-            systemService.setRaspiotBackupDelay(Number(self.backupDelay))
+            systemService.setCleepBackupDelay(Number(self.backupDelay))
                 .then(function() {
                     toast.success('Delay saved');
                 });
@@ -254,7 +254,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             $timeout(function() {
                 systemService.setMonitoring(self.monitoring)
                     .then(function(resp) {
-                        return raspiotService.reloadModuleConfig('system');
+                        return cleepService.reloadModuleConfig('system');
                     })
                     .then(function(config) {
                         //set config
@@ -281,7 +281,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             $timeout(function() {
                 systemService.setCrashReport(self.crashReport)
                     .then(function(resp) {
-                        return raspiotService.reloadModuleConfig('system');
+                        return cleepService.reloadModuleConfig('system');
                     })
                     .then(function(config) {
                         //set config
@@ -329,7 +329,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
         };
 
         /**
-         * Restart raspiot
+         * Restart cleep
          */
         self.restart = function() {
             confirm.open('Confirm application restart?', null, 'Restart software')
@@ -360,7 +360,7 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             $timeout(function() {
                 systemService.setEventNotRendered(rendering.renderer, rendering.event, rendering.disabled)
                     .then(function(resp) {
-                        return raspiotService.reloadModuleConfig('system');
+                        return cleepService.reloadModuleConfig('system');
                     })
                     .then(function(config) {
                         //set config
@@ -500,20 +500,20 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             self.eventsNotRendered = config.eventsnotrendered;
             self.debugSystem = config.debug.system;
             self.debugTrace = config.debug.trace;
-            self.lastCheckRaspiot = config.lastcheckraspiot;
+            self.lastCheckCleep = config.lastcheckcleep;
             self.lastCheckModules = config.lastcheckmodules;
-            self.raspiotUpdateEnabled = config.raspiotupdateenabled;
+            self.cleepUpdateEnabled = config.cleepupdateenabled;
             self.modulesUpdateEnabled = config.modulesupdateenabled;
-            self.raspiotUpdateAvailable = config.raspiotupdateavailable;
-            self.raspiotUpdateChangelog = config.raspiotupdatechangelog;
+            self.cleepUpdateAvailable = config.cleepupdateavailable;
+            self.cleepUpdateChangelog = config.cleepupdatechangelog;
             self.modulesUpdateAvailable = config.modulesupdateavailable;
-            self.lastRaspiotUpdate = config.lastraspiotupdate;
-            self.lastRaspiotUpdate.stdoutStr = config.lastraspiotupdate.stdout.join('\n');
-            self.lastRaspiotUpdate.stderrStr = config.lastraspiotupdate.stderr.join('\n');
-            self.lastRaspiotUpdate.processStr = config.lastraspiotupdate.process.join('\n');
+            self.lastCleepUpdate = config.lastcleepupdate;
+            self.lastCleepUpdate.stdoutStr = config.lastcleepupdate.stdout.join('\n');
+            self.lastCleepUpdate.stderrStr = config.lastcleepupdate.stderr.join('\n');
+            self.lastCleepUpdate.processStr = config.lastcleepupdate.process ? config.lastcleepupdate.process.join('\n') : '';
             self.lastModulesProcessing = config.lastmodulesprocessing;
-            self.raspiotUpdatePending = config.raspiotupdatepending;
-            self.backupDelay = config.raspiotbackupdelay;
+            self.cleepUpdatePending = config.cleepupdatepending;
+            self.backupDelay = config.cleepbackupdelay;
         };
 
         /**
@@ -529,19 +529,19 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
             }
 
             //init
-            $q.all([raspiotService.getEvents(), raspiotService.getRenderers()])
+            $q.all([cleepService.getEvents(), cleepService.getRenderers()])
                 .then(function(resps) {
                     self._initRenderings(resps[0], resps[1]);
 
                     //get system config
-                    return raspiotService.getModuleConfig('system');
+                    return cleepService.getModuleConfig('system');
                 })
                 .then(function(config) {
                     //set module config
                     self.setConfig(config);
                     
                     //request for modules debug status
-                    return raspiotService.getModulesDebug();
+                    return cleepService.getModulesDebug();
                 })
                 .then(function(debug) {
                     self.debugs = debug.data;
@@ -564,6 +564,6 @@ var systemConfigDirective = function($filter, $timeout, $q, toast, systemService
     };
 };
 
-var RaspIot = angular.module('RaspIot');
-RaspIot.directive('systemConfigDirective', ['$filter', '$timeout', '$q', 'toastService', 'systemService', 'raspiotService', 'confirmService', '$mdDialog', '$location', systemConfigDirective]);
+var Cleep = angular.module('Cleep');
+Cleep.directive('systemConfigDirective', ['$rootScope', '$filter', '$timeout', '$q', 'toastService', 'systemService', 'cleepService', 'confirmService', '$mdDialog', '$location', systemConfigDirective]);
 
