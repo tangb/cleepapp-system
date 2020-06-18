@@ -416,7 +416,7 @@ class System(CleepModule):
         if resp[u'error']:
             self.logger.error(u'Unable to get module infos: %s' % resp[u'message'])
             raise CommandError('Unable to install module "%s"' % module)
-        elif resp['data'] is None:
+        if resp['data'] is None:
             self.logger.error(u'Module "%s" not found in modules list' % module)
             raise CommandError(u'Module "%s" not found in installable modules list' % module)
 
@@ -1331,7 +1331,7 @@ class System(CleepModule):
         if not resp:
             self.logger.error(u'No response')
             raise CommandError(u'No response from "%s" module' % module)
-        elif resp[u'error']:
+        if resp[u'error']:
             self.logger.error(u'Unable to set debug on module %s: %s' % (module, resp[u'message']))
             raise CommandError(u'Update debug failed')
 
