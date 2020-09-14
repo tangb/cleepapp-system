@@ -182,9 +182,9 @@ class System(CleepModule):
         devices = self.get_module_devices()
         for device_uuid in devices:
             if devices[device_uuid][u'type'] == u'monitorcpu':
-                self.__monitor_cpu_uuid = uuid
+                self.__monitor_cpu_uuid = device_uuid
             elif devices[device_uuid][u'type'] == u'monitormemory':
-                self.__monitor_memory_uuid = uuid
+                self.__monitor_memory_uuid = device_uuid
 
         # launch monitoring thread
         self.__start_monitoring_threads()
