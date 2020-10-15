@@ -1,6 +1,4 @@
-# cleepmod-system
-
-[![Coverage Status](https://coveralls.io/repos/github/tangb/cleepmod-system/badge.svg?branch=master)](https://coveralls.io/github/tangb/cleepmod-system?branch=master)
+# cleepmod-system [![Coverage Status](https://coveralls.io/repos/github/tangb/cleepmod-system/badge.svg?branch=master)](https://coveralls.io/github/tangb/cleepmod-system?branch=master)
 
 System application for Cleep.
 
