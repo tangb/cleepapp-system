@@ -1,5 +1,6 @@
 **/*.pyc
 **/.coverage
+**/.coveralls.yml
 docs/*.zip
 docs/*.txt
 docs/source
