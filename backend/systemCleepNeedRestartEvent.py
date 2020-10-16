@@ -3,12 +3,12 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemDeviceDeleteEvent(Event):
+class SystemCleepNeedrestartEvent(Event):
     """
-    System.device.delete event
+    System.cleep.needrestart event
     """
 
-    EVENT_NAME = u'system.device.delete'
+    EVENT_NAME = 'system.cleep.needrestart'
     EVENT_SYSTEM = True
     EVENT_PARAMS = []
 
