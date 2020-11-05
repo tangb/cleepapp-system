@@ -1,0 +1,48 @@
+.cm-styleLogInfo {
+  color: purple;
+}
+
+.cm-styleLogMessageTRACE, .cm-styleLogMessageDEBUG, .cm-styleLogMessageINFO {
+  color: black;
+}
+.cm-styleLogMessageWARN, .cm-styleLogMessageWARNING {
+  color: black;
+  background-color: PapayaWhip;
+}
+.cm-styleLogMessageERROR {
+  color: black;
+  background-color: lightpink;
+}
+.cm-styleLogMessageFATAL, .cm-styleLogMessageCRITICAL {
+  color: black;
+  background-color: lightgrey;
+}
+
+.cm-styleLogTypeTRACE {
+  color: yellowgreen;
+  font-weight: bold;
+}
+.cm-styleLogTypeDEBUG {
+  color: forestgreen;
+  font-weight: bold;
+}
+.cm-styleLogTypeINFO {
+  color: blue;
+  font-weight: bold;
+}
+.cm-styleLogTypeWARN, .cm-styleLogTypeWARNING {
+  color: orange;
+  font-weight: bold;
+  background-color: PapayaWhip;
+}
+.cm-styleLogTypeERROR {
+  color: red;
+  font-weight: bold;
+  background-color: lightpink;
+}
+.cm-styleLogTypeFATAL, .cm-styleLogTypeCRITICAL {
+  color: black;
+  font-weight: bold;
+  background-color: lightgrey;
+}
+

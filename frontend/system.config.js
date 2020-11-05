@@ -21,6 +21,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
             lineNumbers: true,
             tabSize: 2,
             readOnly: true,
+            mode: "cleeplog",
             onLoad: function(cmInstance) {
                 self.codemirrorInstance = cmInstance;
                 cmInstance.focus();
