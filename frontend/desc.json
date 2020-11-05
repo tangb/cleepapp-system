@@ -5,8 +5,8 @@
         "html": ["monitor.widget.html", "monitor-dialog.widget.html", "drivers/drivers.html"]
     },
     "config": {
-        "js": ["system.config.js", "codemirror-cleeplog.js"],
+        "js": ["system.config.js", "codemirror/codemirror-cleeplog.js"],
         "html": ["system.config.html", "logs.dialog.html", "update.dialog.html"],
-        "css": ["codemirror-cleeplog.css"]
+        "css": ["codemirror/codemirror-cleeplog.css"]
     }
 }
