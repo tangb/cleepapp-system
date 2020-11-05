@@ -176,7 +176,7 @@
             </md-content>
         </div>
 
-        <!-- debug config -->
+        <!-- debug/trace config -->
         <div layout="column" layout-padding flex="25">
             <div class="md-title">
                 Modules to debug
@@ -193,12 +193,12 @@
             </div>
             <div>
                 <div>
-                    <md-checkbox ng-model="systemCtl.debugSystem" aria-label="Debug system" ng-change="systemCtl.systemDebugChanged()">
+                    <md-checkbox ng-model="systemCtl.config.debug.core" aria-label="Debug system" ng-change="systemCtl.coreDebugChanged()">
                         Debug core
                     </md-checkbox>
                 </div>
                 <div>
-                    <md-checkbox ng-model="systemCtl.debugTrace" aria-label="Enable trace" ng-change="systemCtl.traceChanged()">
+                    <md-checkbox ng-model="systemCtl.config.debug.trace" aria-label="Enable trace" ng-change="systemCtl.traceChanged()">
                         Enable full log (trace)
                     </md-checkbox>
                 </div>

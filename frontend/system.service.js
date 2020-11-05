@@ -71,14 +71,14 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
      * Set module debug
      */
     self.setModuleDebug = function(module, debug) {
-        return rpcService.sendCommand('set_module_debug', 'system', {'module':module, 'debug':debug});
+        return rpcService.sendCommand('set_module_debug', 'system', {'module_name':module, 'debug':debug});
     };
 
     /**
-     * Set system debug
+     * Set core debug
      */
-    self.setSystemDebug = function(debug) {
-        return rpcService.sendCommand('set_system_debug', 'system', {'debug':debug});
+    self.setCoreDebug = function(debug) {
+        return rpcService.sendCommand('set_core_debug', 'system', {'debug':debug});
     };
 
     /**

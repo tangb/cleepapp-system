@@ -251,20 +251,22 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         };
 
         /**
-         * System debug changed
+         * Core debug changed
          */
-        self.systemDebugChanged = function() {
-            systemService.setSystemDebug(self.debugSystem);
+        self.coreDebugChanged = function() {
+            $timeout(function() {
+                systemService.setCoreDebug(self.config.debug.core);
+            }, 250);
         };
 
         /**
          * Trace changed
          */
         self.traceChanged = function() {
-            systemService.setTrace(self.debugTrace)
+            systemService.setTrace(self.config.debug.trace)
                 .then(function() {
                     var message = 'Trace enabled';
-                    if( !self.debugTrace )
+                    if( !self.config.debug.trace )
                         message = 'Trace disabled';
                         
                     toast.success('' + message +'. Please restart application');
