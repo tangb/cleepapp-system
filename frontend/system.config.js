@@ -13,9 +13,11 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.tabIndex = 'drivers';
         self.needRestart = false;
         self.debugs = {};
+        self.renderings = [];
 
         self.codemirrorInstance = null;
         self.codemirrorOptions = {
+            lineWrapping: true,
             lineNumbers: true,
             tabSize: 2,
             readOnly: true,
@@ -35,7 +37,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.backupConfiguration = function() {
             systemService.backupCleepConfig()
                 .then(function() {
-                    toast.success('Configuration saved');
+                    toast.success('Configuration backuped');
                 });
         };
 
@@ -43,7 +45,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
          * Set backup config delay
          */
         self.setBackupDelay = function() {
-            systemService.setCleepBackupDelay(Number(self.backupDelay))
+            systemService.setCleepBackupDelay(Number(self.config.cleepbackupdelay))
                 .then(function() {
                     toast.success('Delay saved');
                 });
@@ -66,17 +68,13 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.updateMonitoring = function(fromCheckbox) {
             if( !fromCheckbox ) {
                 // row clicked, we need to update flag
-                self.monitoring = !self.monitoring;
+                self.config.monitoring = !self.config.monitoring;
             }
 
             // delay update to make sure model value is updated
-            systemService.setMonitoring(self.monitoring)
+            systemService.setMonitoring(self.config.monitoring)
                 .then(function(resp) {
-                    return cleepService.reloadModuleConfig('system');
-                })
-                .then(function(config) {
-                    // set config
-                    self.setConfig(config);
+                    cleepService.reloadModuleConfig('system');
                     toast.success('Monitoring updated');
                 });
         };
@@ -87,21 +85,17 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.updateCrashReport = function(fromCheckbox) {
             if( !fromCheckbox ) {
                 // row clicked, we need to update flag
-                self.crashReport = !self.crashReport;
+                self.config.crashreport = !self.config.crashreport;
             }
 
             //delay update to make sure model value is updated
             $timeout(function() {
-                systemService.setCrashReport(self.crashReport)
+                systemService.setCrashReport(self.config.crashreport)
                     .then(function(resp) {
-                        return cleepService.reloadModuleConfig('system');
-                    })
-                    .then(function(config) {
-                        // set config
-                        self.setConfig(config);
+                        cleepService.reloadModuleConfig('system');
 
                         // user message
-                        if( self.crashReport ) {
+                        if( self.config.crashreport ) {
                             toast.success('Crash report enabled');
                         } else {
                             toast.success('Crash report disabled');
@@ -168,11 +162,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
             $timeout(function() {
                 systemService.setEventNotRendered(rendering.renderer, rendering.event, rendering.disabled)
                     .then(function(resp) {
-                        return cleepService.reloadModuleConfig('system');
-                    })
-                    .then(function(config) {
-                        //set config
-                        self.setConfig(config);
+                        cleepService.reloadModuleConfig('system');
                     });
             }, 250);
         };

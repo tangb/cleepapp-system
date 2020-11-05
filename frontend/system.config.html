@@ -50,7 +50,7 @@
                 <md-icon md-svg-icon="chevron-right"></md-icon>
                 <p>Configure backup configuration delay</p>
                 <div class="md-secondary">
-                    <md-select ng-model="systemCtl.backupDelay" placeholder="Backup delay" class="md-no-underline">
+                    <md-select ng-model="systemCtl.config.cleepbackupdelay" placeholder="Backup delay" class="md-no-underline">
                         <md-option value="5">5 minutes</md-option>
                         <md-option value="10">10 minutes</md-option>
                         <md-option value="15">15 minutes</md-option>
@@ -72,10 +72,17 @@
         <md-list ng-cloak>
 
             <md-list-item>
-                <p>Some installed modules have capability to render several events: messageboard is capable of rendering time events (displaying it) or smtp module is capable of rendering email event (sending an email)...</p>
+                <span>
+                    Some installed applications have capability to render several events:
+                    <ul>
+                        <li>messageboard app is able to render time events to display current time on the physical board,</li>
+                        <li>smtp module is able to render alert event to send an email,</li>
+                        <li>...</li>
+                    </ul>
+                </span>
             </md-list-item>
             <md-list-item>
-                <p>Options below give you a way to disable those events handled by installed modules:</p>
+                <p>Options below give you a way to disable those events rendering automatically handled by installed applications:</p>
             </md-list-item>
             <md-list-item ng-repeat="rendering in systemCtl.renderings" ng-click="systemCtl.updateRendering(rendering,false)">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
@@ -84,7 +91,7 @@
             </md-list-item>
             <md-list-item ng-if="systemCtl.renderings.length===0">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>No renderer found</p>
+                <p>No installed application is able to render event</p>
             </md-list-item>
 
         </md-list>
@@ -139,7 +146,7 @@
             <md-list-item>
                 <md-icon md-svg-icon="chevron-right"></md-icon>
                 <p>If you enable crash report, it will help us to improve application reliability</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.config.crashReport" aria-label="Crash report" ng-change="systemCtl.updateCrashReport(true)"></md-checkbox>
+                <md-checkbox class="md-secondary" ng-model="systemCtl.config.crashreport" aria-label="Crash report" ng-change="systemCtl.updateCrashReport(true)"></md-checkbox>
             </md-list-item>
 
         </md-list>
@@ -150,7 +157,7 @@
         
         <!-- viewer -->
         <div layout="column" layout-padding flex="75" layout-sm="column" flex-sm="100">
-            <md-content>
+            <md-content layout-fill>
                 <md-toolbar class="md-hue-3">
                     <div class="md-toolbar-tools">
                         <h2 flex md-truncate>Log viewer</h2>
@@ -164,7 +171,8 @@
                         </md-button>
                     </div>
                 </md-toolbar>
-                <div ui-codemirror ui-codemirror-opts="systemCtl.codemirrorOptions" ng-model="systemCtl.logs" class="codemirror-code"></div>
+                <div ui-codemirror ui-codemirror-opts="systemCtl.codemirrorOptions" ng-model="systemCtl.logs" class="codemirror-code">
+                </div>
             </md-content>
         </div>
 

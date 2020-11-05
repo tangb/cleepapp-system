@@ -29,21 +29,21 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
      * Reboot system
      */
     self.reboot = function() {
-        return rpcService.sendCommand('reboot_system', 'system');
+        return rpcService.sendCommand('reboot_device', 'system');
     };
 
     /**
      * Halt system
      */
     self.halt = function() {
-        return rpcService.sendCommand('halt_system', 'system');
+        return rpcService.sendCommand('halt_device', 'system');
     };
 
     /**
      * Restart cleep
      */
     self.restart = function() {
-        return rpcService.sendCommand('restart', 'system');
+        return rpcService.sendCommand('restart_cleep', 'system');
     };
 
     /**
