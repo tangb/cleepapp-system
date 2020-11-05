@@ -1,3 +1,4 @@
+// Test online code http://jsfiddle.net/1842thys/
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"));
