@@ -25,7 +25,7 @@ __all__ = ['System']
 
 class System(CleepModule):
     """
-    Helps controlling the system device (halt, reboot) and monitoring it
+    Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
     MODULE_VERSION = '1.1.0'
@@ -102,7 +102,7 @@ class System(CleepModule):
         self.drivers = bootstrap['drivers']
 
         # events
-        self.device_halt_event = self._get_event('system.device.halt')
+        self.device_poweroff_event = self._get_event('system.device.poweroff')
         self.device_reboot_event = self._get_event('system.device.reboot')
         self.cleep_restart_event = self._get_event('system.cleep.restart')
         self.cleep_need_restart_event = self._get_event('system.cleep.needrestart')
@@ -294,21 +294,21 @@ class System(CleepModule):
         console = Console()
         console.command_delayed('reboot', delay)
 
-    def halt_device(self, delay=5.0):
+    def poweroff_device(self, delay=5.0):
         """
-        Halt device
+        Poweroff device
         """
         # backup configuration
         self.backup_cleep_config()
 
         # send event
-        self.device_halt_event.send({
+        self.device_poweroff_event.send({
             'delay': delay
         })
 
         # and reboot system
         console = Console()
-        console.command_delayed('halt', delay)
+        console.command_delayed('poweroff', delay)
 
     def restart_cleep(self, delay=3.0):
         """

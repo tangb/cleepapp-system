@@ -3,15 +3,15 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemDeviceHaltEvent(Event):
+class SystemDevicePoweroffEvent(Event):
     """
-    System.device.halt event
-    This event is sent just before halt command is launched. It allows modules to perform something before.
+    System.device.poweroff event
+    This event is sent just before poweroff command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = u'system.device.halt'
+    EVENT_NAME = 'system.device.poweroff'
     EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'delay']
+    EVENT_PARAMS = ['delay']
 
     def __init__(self, bus, formatters_broker):
         """ 

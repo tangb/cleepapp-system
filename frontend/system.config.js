@@ -107,7 +107,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
 
 
         /**
-         * Reboot system
+         * Reboot device
          */
         self.reboot = function() {
             confirm.open('Confirm device reboot?', null, 'Reboot device')
@@ -115,20 +115,20 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
                     return systemService.reboot();
                 })
                 .then(function() {
-                    toast.success('System will reboot');
+                    toast.success('Device will reboot in few seconds');
                 });
         };
 
         /**
-         * Halt system
+         * Poweroff device
          */
-        self.halt = function() {
-            confirm.open('Confirm device shutdown?', null, 'Halt device')
+        self.poweroff = function() {
+            confirm.open('Confirm device shutdown?', null, 'Poweroff device')
                 .then(function() {
-                    systemService.halt();
+                    systemService.poweroff();
                 })
                 .then(function() {
-                    toast.success('System will halt');
+                    toast.success('Device will shutdown in few seconds');
                 });
         };
 
@@ -136,12 +136,12 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
          * Restart cleep
          */
         self.restart = function() {
-            confirm.open('Confirm application restart?', null, 'Restart software')
+            confirm.open('Confirm application restart?', null, 'Restart Cleep')
                 .then(function() {
                     systemService.restart();
                 })
                 .then(function() {
-                    toast.success('Software will restart');
+                    toast.success('Cleep will restart in few seconds');
                 });
         };
 

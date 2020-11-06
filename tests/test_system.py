@@ -235,15 +235,15 @@ class TestSystem(unittest.TestCase):
         self.assertTrue(self.session.event_called('system.device.reboot'))
 
     @patch('backend.system.Console')
-    def test_halt_device(self, mock_console):
+    def test_poweroff_device(self, mock_console):
         self.init_session()
         self.module.backup_cleep_config = Mock()
 
-        self.module.halt_device(delay=10.0)
+        self.module.poweroff_device(delay=10.0)
         
         self.module.backup_cleep_config.assert_called()
-        mock_console.return_value.command_delayed.assert_called_with('halt', 10.0)
-        self.assertTrue(self.session.event_called('system.device.halt'))
+        mock_console.return_value.command_delayed.assert_called_with('poweroff', 10.0)
+        self.assertTrue(self.session.event_called('system.device.poweroff'))
 
     @patch('backend.system.Console')
     def test_restart_cleep(self, mock_console):

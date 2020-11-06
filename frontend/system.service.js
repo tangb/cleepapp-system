@@ -26,17 +26,17 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
     };
 
     /**
-     * Reboot system
+     * Reboot device
      */
     self.reboot = function() {
         return rpcService.sendCommand('reboot_device', 'system');
     };
 
     /**
-     * Halt system
+     * Poweroff device 
      */
-    self.halt = function() {
-        return rpcService.sendCommand('halt_device', 'system');
+    self.poweroff = function() {
+        return rpcService.sendCommand('poweroff_device', 'system');
     };
 
     /**

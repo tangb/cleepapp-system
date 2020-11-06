@@ -26,7 +26,7 @@ For example you installed a screen app and a weather service app and you don't w
  
 ## Advanced options panel
 
-Options in this panel allows you to restart or halt properly the device.
+Options in this panel allows you to restart or poweroff properly the device.
 Properly means Cleep configuration will be saved before action.
 
 It also allows you to restart Cleep application.
