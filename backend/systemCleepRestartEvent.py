@@ -9,9 +9,9 @@ class SystemCleepRestartEvent(Event):
     This event is sent just before restart command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = u'system.cleep.restart'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'delay']
+    EVENT_NAME = 'system.cleep.restart'
+    EVENT_PROPAGATE = False
+    EVENT_PARAMS = ['delay']
 
     def __init__(self, bus, formatters_factory):
         """ 

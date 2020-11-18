@@ -9,9 +9,9 @@ class SystemDriverUninstallEvent(Event):
     This event is sent just before restart command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = u'system.driver.uninstall'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'drivertype', u'drivername', u'uninstalling', u'success', u'message']
+    EVENT_NAME = 'system.driver.uninstall'
+    EVENT_PROPAGATE = False
+    EVENT_PARAMS = ['drivertype', 'drivername', 'uninstalling', 'success', 'message']
 
     def __init__(self, bus, formatters_broker):
         """ 

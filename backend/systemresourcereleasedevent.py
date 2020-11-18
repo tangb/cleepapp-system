@@ -9,7 +9,7 @@ class SystemResourceReleasedEvent(Event):
     """
 
     EVENT_NAME = u'system.resource.released'
-    EVENT_SYSTEM = True
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = [u'resource', u'module']
 
     def __init__(self, bus, formatters_broker):

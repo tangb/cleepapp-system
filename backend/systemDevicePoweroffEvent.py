@@ -10,7 +10,7 @@ class SystemDevicePoweroffEvent(Event):
     """
 
     EVENT_NAME = 'system.device.poweroff'
-    EVENT_SYSTEM = True
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = ['delay']
 
     def __init__(self, bus, formatters_broker):

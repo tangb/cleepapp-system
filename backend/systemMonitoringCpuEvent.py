@@ -8,9 +8,9 @@ class SystemMonitoringCpuEvent(Event):
     System.monitoring.cpu event
     """
 
-    EVENT_NAME = u'system.monitoring.cpu'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'system', u'cleep']
+    EVENT_NAME = 'system.monitoring.cpu'
+    EVENT_PROPAGATE = False
+    EVENT_PARAMS = ['system', 'cleep']
     EVENT_CHARTABLE = True
 
     def __init__(self, bus, formatters_broker):
@@ -42,16 +42,16 @@ class SystemMonitoringCpuEvent(Event):
                 ]
              
         """
-        cleep = float(params[u'cleep'])
-        system = float(params[u'system'])
+        cleep = float(params['cleep'])
+        system = float(params['system'])
         others = float('{0:.2f}'.format(system - cleep))
         if others<0.0:
             others = 0.0 
         idle = 100.0 - cleep - others
 
         return [
-            {u'field': u'cleep', u'value': cleep},
-            {u'field': u'others', u'value': others},
-            {u'field': u'idle', u'value': idle}
+            {'field': 'cleep', 'value': cleep},
+            {'field': 'others', 'value': others},
+            {'field': 'idle', 'value': idle}
         ]
 

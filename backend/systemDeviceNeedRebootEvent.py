@@ -8,8 +8,8 @@ class SystemDeviceNeedrebootEvent(Event):
     System.device.needreboot event
     """
 
-    EVENT_NAME = u'system.device.needreboot'
-    EVENT_SYSTEM = True
+    EVENT_NAME = 'system.device.needreboot'
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
     def __init__(self, bus, formatters_broker):

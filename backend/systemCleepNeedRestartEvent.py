@@ -9,7 +9,7 @@ class SystemCleepNeedrestartEvent(Event):
     """
 
     EVENT_NAME = 'system.cleep.needrestart'
-    EVENT_SYSTEM = True
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
     def __init__(self, bus, formatters_broker):

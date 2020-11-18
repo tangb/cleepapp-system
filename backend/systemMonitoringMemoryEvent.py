@@ -8,9 +8,9 @@ class SystemMonitoringMemoryEvent(Event):
     System.monitoring.memory event
     """
 
-    EVENT_NAME = u'system.monitoring.memory'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'total', u'available', u'availablehr', u'cleep']
+    EVENT_NAME = 'system.monitoring.memory'
+    EVENT_PROPAGATE = False
+    EVENT_PARAMS = ['total', 'available', 'availablehr', 'cleep']
     EVENT_CHARTABLE = True
 
     def __init__(self, bus, formatters_broker):
@@ -42,14 +42,14 @@ class SystemMonitoringMemoryEvent(Event):
                 ]
 
         """
-        cleep = float(params[u'cleep'])
-        total = float(params[u'total'])
-        available = float(params[u'available'])
+        cleep = float(params['cleep'])
+        total = float(params['total'])
+        available = float(params['available'])
         others = total - available - cleep
 
         return [
-            {u'field': u'cleep', u'value': cleep},
-            {u'field': u'others', u'value': others},
-            {u'field': u'available', u'value': available}
+            {'field': 'cleep', 'value': cleep},
+            {'field': 'others', 'value': others},
+            {'field': 'available', 'value': available}
         ]
 

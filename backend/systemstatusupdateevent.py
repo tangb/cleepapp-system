@@ -9,7 +9,7 @@ class SystemStatusUpdateEvent(Event):
     """
 
     EVENT_NAME = u'system.status.update'
-    EVENT_SYSTEM = True
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = [u'status', u'downloadfilesize', u'downloadpercent']
 
     def __init__(self, bus, formatters_broker):

@@ -8,9 +8,9 @@ class SystemAlertDiskEvent(Event):
     System.alert.disk event
     """
 
-    EVENT_NAME = u'system.alert.disk'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'percent', u'threshold', u'mountpoint']
+    EVENT_NAME = 'system.alert.disk'
+    EVENT_PROPAGATE = True
+    EVENT_PARAMS = ['percent', 'threshold', 'mountpoint']
 
     def __init__(self, bus, formatters_broker):
         """ 

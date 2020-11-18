@@ -8,8 +8,8 @@ class CoreDeviceDeleteEvent(Event):
     Core.device.delete event
     """
 
-    EVENT_NAME = u'core.device.delete'
-    EVENT_SYSTEM = True
+    EVENT_NAME = 'core.device.delete'
+    EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
     def __init__(self, bus, formatters_broker):

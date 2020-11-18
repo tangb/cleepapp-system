@@ -8,9 +8,9 @@ class SystemAlertMemoryEvent(Event):
     System.alert.memory event
     """
 
-    EVENT_NAME = u'system.alert.memory'
-    EVENT_SYSTEM = True
-    EVENT_PARAMS = [u'percent', u'threshold']
+    EVENT_NAME = 'system.alert.memory'
+    EVENT_PROPAGATE = True
+    EVENT_PARAMS = ['percent', 'threshold']
 
     def __init__(self, bus, formatters_broker):
         """ 
