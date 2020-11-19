@@ -683,11 +683,8 @@ class System(CleepModule):
             resp = self.send_command('set_rpc_debug', 'inventory', {'debug':debug})
         else:
             resp = self.send_command('set_debug', module_name, {'debug':debug})
-        if not resp:
-            self.logger.error('No response')
-            raise CommandError('No response from "%s" module' % module_name)
-        if resp['error']:
-            self.logger.error('Unable to set debug on module %s: %s' % (module_name, resp['message']))
+        if resp.error:
+            self.logger.error('Unable to set debug on module %s: %s' % (module_name, resp.message))
             raise CommandError('Update debug failed')
 
     def _set_not_renderable_events(self):

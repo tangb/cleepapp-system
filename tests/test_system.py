@@ -5,7 +5,7 @@ import logging
 import sys
 sys.path.append('../')
 from backend.system import System
-from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo
+from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo, NoResponse
 from cleep.libs.tests import session
 from mock import Mock, patch, MagicMock
 
@@ -547,12 +547,12 @@ class TestSystem(unittest.TestCase):
         self.session.set_mock_command_no_response('set_debug')
         with self.assertRaises(CommandError) as cm:
             self.module.set_module_debug('dummy', True)
-        self.assertEqual(str(cm.exception), 'No response from "dummy" module')
+        self.assertEqual(str(cm.exception), 'Update debug failed')
 
         self.session.set_mock_command_no_response('set_rpc_debug')
         with self.assertRaises(CommandError) as cm:
             self.module.set_module_debug('rpc', True)
-        self.assertEqual(str(cm.exception), 'No response from "rpc" module')
+        self.assertEqual(str(cm.exception), 'Update debug failed')
 
     def test_set_not_renderable_events(self):
         self.init_session()
