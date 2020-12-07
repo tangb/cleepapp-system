@@ -12,13 +12,12 @@ class SystemStatusUpdateEvent(Event):
     EVENT_PROPAGATE = False
     EVENT_PARAMS = [u'status', u'downloadfilesize', u'downloadpercent']
 
-    def __init__(self, bus, formatters_broker):
+    def __init__(self, params):
         """ 
         Constructor
 
         Args:
-            bus (MessageBus): message bus instance
-            formatters_broker (FormattersBroker): formatters broker instance
+            params (dict): event parameters
         """
-        Event.__init__(self, bus, formatters_broker)
+        Event.__init__(self, params)
 

@@ -634,7 +634,7 @@ class System(CleepModule):
             raise InvalidParameter('Parameter "debug" is invalid')
 
         if debug:
-            self.bootstrap['message_bus'].logger.setLevel(logging.DEBUG)
+            self.bootstrap['internal_bus'].logger.setLevel(logging.DEBUG)
             self.bootstrap['events_broker'].logger.setLevel(logging.DEBUG)
             self.bootstrap['cleep_filesystem'].logger.setLevel(logging.DEBUG)
             self.bootstrap['formatters_broker'].logger.setLevel(logging.DEBUG)
@@ -644,7 +644,7 @@ class System(CleepModule):
 
             self.cleep_conf.enable_core_debug()
         else:
-            self.bootstrap['message_bus'].logger.setLevel(logging.INFO)
+            self.bootstrap['internal_bus'].logger.setLevel(logging.INFO)
             self.bootstrap['events_broker'].logger.setLevel(logging.INFO)
             self.bootstrap['cleep_filesystem'].logger.setLevel(logging.INFO)
             self.bootstrap['formatters_broker'].logger.setLevel(logging.INFO)

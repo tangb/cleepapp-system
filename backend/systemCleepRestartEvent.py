@@ -13,13 +13,12 @@ class SystemCleepRestartEvent(Event):
     EVENT_PROPAGATE = False
     EVENT_PARAMS = ['delay']
 
-    def __init__(self, bus, formatters_factory):
+    def __init__(self, params):
         """ 
         Constructor
 
         Args:
-            bus (MessageBus): message bus instance
-            formatters_factory (FormattersFactory): formatters factory instance
+            params (dict): event parameters
         """
-        Event.__init__(self, bus, formatters_factory)
+        Event.__init__(self, params)
 
