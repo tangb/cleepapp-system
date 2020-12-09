@@ -149,32 +149,32 @@ class TestSystem(unittest.TestCase):
                 )
                 break
 
-    def test_event_received_need_restart(self):
+    def test_on_event_need_restart(self):
         self.init_session()
 
-        self.module.event_received({
+        self.module.on_event({
             'event': 'system.system.needrestart',
             'params': {}
         })
         
         self.assertTrue(self.module._System__need_restart)
 
-    def test_event_received_need_reboot(self):
+    def test_on_event_need_reboot(self):
         self.init_session()
         self.module._set_config_field = Mock()
 
-        self.module.event_received({
+        self.module.on_event({
             'event': 'system.system.needreboot',
             'params': {}
         })
         
         self.module._set_config_field.assert_called_with('needreboot', True)
 
-    def test_event_received_backup_config(self):
+    def test_on_event_backup_config(self):
         self.init_session()
         self.module.backup_cleep_config = Mock()
 
-        self.module.event_received({
+        self.module.on_event({
             'event': 'parameters.time.now',
             'params': {
                 'minute': 5
@@ -182,7 +182,7 @@ class TestSystem(unittest.TestCase):
         })
         self.assertFalse(self.module.backup_cleep_config.called)
 
-        self.module.event_received({
+        self.module.on_event({
             'event': 'parameters.time.now',
             'params': {
                 'minute': 15

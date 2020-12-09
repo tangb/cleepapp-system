@@ -234,9 +234,9 @@ class System(CleepModule):
 
         return devices
 
-    def event_received(self, event):
+    def on_event(self, event):
         """
-        Watch for specific event
+        Receive event
 
         Args:
             event (MessageRequest): event data
