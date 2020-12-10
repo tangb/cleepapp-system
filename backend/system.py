@@ -170,6 +170,14 @@ class System(CleepModule):
         # launch monitoring thread
         self.__start_monitoring_tasks()
 
+        # expand filesystem if necessary
+        if self.need_filesystem_expansion():
+            self.logger.info('Filesystem needs to be expanded')
+            if self.expand_filesystem():
+                self.logger.info('Filesystem expanded')
+            else:
+                self.logger.warning('Filesystem expansion failed')
+
     def _on_stop(self):
         """
         Application stop
@@ -443,6 +451,75 @@ class System(CleepModule):
         if self._get_config_field('monitoring'):
             self.monitoring_memory_event.send(params=memory, device_id=self.__monitor_memory_uuid)
 
+    def need_filesystem_expansion(self):
+        """
+        Check if filesystem needs to be expanded
+
+        Returns:
+            bool: True if filesystem needs to be expanded
+        """
+        console = Console()
+        resp = console.command('/sbin/sfdisk -F /dev/mmcblk0 | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G"')
+
+        return resp['returncode'] == 0
+
+    # TODO move to filesystem app
+    def expand_filesystem(self):
+        """
+        Expand device filesystem without reboot
+
+        Note:
+            Code inspired from this article https://medium.com/100-days-of-linux/how-to-resize-a-linux-root-file-system-af3e5096b4e4
+
+        Returns:
+            bool: True if filesystem expansion succeed
+        """
+        # write script to filesystem
+        CONTENT = """#!/bin/bash
+
+checkResult() {
+    if [ $1 -ne $2 ]; then exit 1; fi
+}
+
+DEVICE=`/bin/lsblk --nodeps --noheadings | awk '{ print $1 }'`
+ROOT=`/bin/lsblk --list --noheadings | grep part | grep -v boot | awk '{ print $1 }'`
+END_SECTOR_FREE=`/sbin/sfdisk -F /dev/$DEVICE | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G" | awk '{ print $2 }'`
+END_SECTOR_CURRENT=`/sbin/sfdisk -l /dev/$DEVICE | tail -n +8 | grep $ROOT | awk '{ print $4 }'`
+
+echo =======================
+echo "DEVICE='$DEVICE'"
+echo "ROOT='$ROOT'"
+echo "END_SECTOR_FREE='$END_SECTOR_FREE'"
+echo "END_SECTOR_CURRENT='$END_SECTOR_CURRENT'"
+echo =======================
+
+if [ ! -z "$END_SECTOR_FREE" ]
+then
+    /sbin/sfdisk --dump /dev/$DEVICE > /tmp/backup.dump
+    checkResult $? 0
+    cp /tmp/backup.dump /tmp/extend.dump
+    checkResult $? 0
+    sed -i -e 's/'"$END_SECTOR_CURRENT"'/'"$END_SECTOR_FREE"'/g' /tmp/extend.dump
+    checkResult $? 0
+    /sbin/sfdisk --no-reread --force /dev/$DEVICE < /tmp/extend.dump
+    checkResult $? 0
+    /sbin/partprobe /dev/$DEVICE
+    checkResult $? 0
+    /sbin/resize2fs -f /dev/$ROOT
+    checkResult $? 0
+fi
+        """
+        SCRIPT = '/tmp/expand.sh'
+        with open(SCRIPT, 'w') as script:
+            script.write(CONTENT)
+        
+        # execute it
+        console = Console()
+        resp = console.command('chmod +x %s; %s' % (SCRIPT, SCRIPT), timeout=30.0)
+
+        return resp['returncode'] == 0
+
+    # TODO to move to filesystem app
     # def _monitoring_disks_task(self):
     # """
     #    Read disks usage
@@ -467,6 +544,7 @@ class System(CleepModule):
     #                'mountpoint': disk['mountpoint']
     #            })
 
+    # TODO move to filesystem app
     # def get_filesystem_infos(self):
     #    """
     #    Return filesystem infos (all values are in octets)

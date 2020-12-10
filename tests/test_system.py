@@ -3,6 +3,7 @@
 import unittest
 import logging
 import sys
+import os
 sys.path.append('../')
 from backend.system import System
 from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo, NoResponse
@@ -31,7 +32,7 @@ mock_cleepconf = MagicMock()
 
 @patch('backend.system.psutil', mock_psutil)
 @patch('backend.system.CleepConf', mock_cleepconf)
-class TestSystem(unittest.TestCase):
+class TestsSystem(unittest.TestCase):
 
     def setUp(self):
         self.session = session.TestSession(self)
@@ -122,6 +123,41 @@ class TestSystem(unittest.TestCase):
         self.module._configure_crash_report(False)
         self.assertEqual(self.session.crash_report.enable.call_count, 1) # called during _configure
         self.assertTrue(self.session.crash_report.disable.called)
+
+    def test_on_start(self):
+        self.init_session(start_module=False)
+        self.module._System__start_monitoring_tasks = Mock()
+        self.module.need_filesystem_expansion = Mock(return_value=True)
+        self.module.expand_filesystem = Mock(return_value=True)
+
+        self.session.start_module(self.module)
+
+        self.assertTrue(self.module._System__start_monitoring_tasks.called)
+        self.assertTrue(self.module.need_filesystem_expansion.called)
+        self.assertTrue(self.module.expand_filesystem.called)
+
+    def test_on_start_filesystem_expansion_failed(self):
+        self.init_session(start_module=False)
+        self.module._System__start_monitoring_tasks = Mock()
+        self.module.need_filesystem_expansion = Mock(return_value=True)
+        self.module.expand_filesystem = Mock(return_value=False)
+
+        self.session.start_module(self.module)
+
+        self.assertTrue(self.module._System__start_monitoring_tasks.called)
+        self.assertTrue(self.module.need_filesystem_expansion.called)
+
+    def test_on_start_no_need_to_expand_filesystem(self):
+        self.init_session(start_module=False)
+        self.module._System__start_monitoring_tasks = Mock()
+        self.module.need_filesystem_expansion = Mock(return_value=False)
+        self.module.expand_filesystem = Mock()
+
+        self.session.start_module(self.module)
+
+        self.assertTrue(self.module._System__start_monitoring_tasks.called)
+        self.assertTrue(self.module.need_filesystem_expansion.called)
+        self.assertFalse(self.module.expand_filesystem.called)
 
     def test_get_module_config(self):
         self.init_session()
@@ -345,6 +381,43 @@ class TestSystem(unittest.TestCase):
         self.assertTrue(self.session.event_called('system.alert.memory'))
         logging.debug('Event params: %s' % self.session.get_last_event_params('system.alert.memory'))
         self.assertTrue(self.session.event_called_with('system.alert.memory', {'percent': 90.0, 'threshold': 80.0}))
+
+    @patch('backend.system.Console')
+    def test_need_filesystem_expansion(self, mock_console):
+        self.init_session()
+        mock_console.return_value.command.return_value = {'returncode': 0}
+
+        self.assertTrue(self.module.need_filesystem_expansion())
+
+        self.assertTrue(mock_console.return_value.command.called)
+
+    @patch('backend.system.Console')
+    def test_need_filesystem_expansion(self, mock_console):
+        self.init_session()
+        mock_console.return_value.command.return_value = {'returncode': 1}
+
+        self.assertFalse(self.module.need_filesystem_expansion())
+
+        self.assertTrue(mock_console.return_value.command.called)
+
+    @patch('backend.system.Console')
+    def test_expand_filesystem_succeed(self, mock_console):
+        self.init_session()
+        mock_console.return_value.command.return_value = {'returncode': 0}
+
+        self.assertTrue(self.module.expand_filesystem())
+
+        self.assertTrue(os.path.exists('/tmp/expand.sh'))
+        self.assertTrue(mock_console.return_value.command.called)
+
+    @patch('backend.system.Console')
+    def test_expand_filesystem_failed(self, mock_console):
+        self.init_session()
+        mock_console.return_value.command.return_value = {'returncode': 1}
+
+        self.assertFalse(self.module.expand_filesystem())
+
+        self.assertTrue(mock_console.return_value.command.called)
 
     @patch('os.path.exists', Mock(return_value=True))
     @patch('backend.system.datetime')
