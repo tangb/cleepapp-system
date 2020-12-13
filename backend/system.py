@@ -28,13 +28,13 @@ class System(CleepModule):
     Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
-    MODULE_VERSION = '1.1.0'
+    MODULE_VERSION = '2.0.0'
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
     MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
     MODULE_LONGDESCRIPTION = 'Application that helps you to configure your system'
-    MODULE_TAGS = ['troubleshoot', 'locale', 'events', 'monitoring', 'log', 'renderer', 'driver']
+    MODULE_TAGS = ['troubleshoot', 'monitoring', 'log', 'rendering', 'driver', 'backup']
     MODULE_COUNTRY = ''
     MODULE_URLINFO = 'https://github.com/tangb/cleepmod-system'
     MODULE_URLHELP = None
