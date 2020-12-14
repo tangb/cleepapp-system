@@ -5,7 +5,6 @@ import os
 import logging
 from datetime import datetime
 import time
-import uuid
 from zipfile import ZipFile, ZIP_DEFLATED
 from tempfile import NamedTemporaryFile
 import psutil
@@ -13,7 +12,6 @@ from cleep.exception import InvalidParameter, MissingParameter, CommandError, Co
 from cleep.core import CleepModule
 from cleep.libs.internals.task import Task
 from cleep.libs.internals.console import Console
-from cleep.libs.configs.fstab import Fstab
 from cleep.libs.configs.cleepconf import CleepConf
 import cleep.libs.internals.tools as Tools
 from cleep import __version__ as VERSION
@@ -271,7 +269,7 @@ class System(CleepModule):
         """
         if monitoring is None:
             raise MissingParameter('Parameter "monitoring" is missing')
-        if not isinstance(monitoring, bool) :
+        if not isinstance(monitoring, bool):
             raise InvalidParameter('Parameter "monitoring" is invalid')
 
         if not self._set_config_field('monitoring', monitoring):
@@ -458,8 +456,14 @@ class System(CleepModule):
         Returns:
             bool: True if filesystem needs to be expanded
         """
+        if os.path.exists('/boot/CLEEP_ISO'):
+            # flag to avoid resizing partition during Cleep is generation
+            return False
+
         console = Console()
-        resp = console.command('/sbin/sfdisk -F /dev/mmcblk0 | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G"')
+        resp = console.command(
+            '/sbin/sfdisk -F /dev/`/bin/lsblk --nodeps --noheadings | awk \'{ print $1 }\'` | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G"'
+        )
 
         return resp['returncode'] == 0
 
@@ -475,7 +479,7 @@ class System(CleepModule):
             bool: True if filesystem expansion succeed
         """
         # write script to filesystem
-        CONTENT = """#!/bin/bash
+        content = """#!/bin/bash
 
 checkResult() {
     if [ $1 -ne $2 ]; then exit 1; fi
@@ -509,17 +513,17 @@ then
     checkResult $? 0
 fi
         """
-        SCRIPT = '/tmp/expand.sh'
-        with open(SCRIPT, 'w') as script:
-            script.write(CONTENT)
-        
+        script = '/tmp/expand.sh'
+        with open(script, 'w') as script:
+            script.write(content)
+
         # execute it
         console = Console()
-        resp = console.command('chmod +x %s; %s' % (SCRIPT, SCRIPT), timeout=30.0)
+        resp = console.command('chmod +x %s; %s' % (script, script), timeout=30.0)
 
         return resp['returncode'] == 0
 
-    # TODO to move to filesystem app
+    # TODO move to filesystem app
     # def _monitoring_disks_task(self):
     # """
     #    Read disks usage
@@ -778,7 +782,7 @@ fi
                 ))
                 event = self.events_broker.get_event_instance(event_not_renderable['event'])
                 event.set_renderable(event_not_renderable['renderer'], False)
-            except:
+            except Exception:
                 # event does not exists anymore, delete it
                 key = '%s%s%s' % (
                     event_not_renderable['renderer'],
@@ -913,7 +917,7 @@ fi
         # check params
         if delay is None:
             raise MissingParameter('Parameter "delay" is missing')
-        if type(delay) is not int:
+        if isinstance(delay, int):
             raise InvalidParameter('Parameter "delay" is invalid')
         if delay < 5 or delay > 120:
             raise InvalidParameter('Parameter "delay" must be 5..120')
