@@ -12,7 +12,7 @@
         var logMessageStyle = '';
         return {
             token: function(stream, state) {
-                var logInfo = stream.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\s+(.*?)\s+\[.*\] /);
+                var logInfo = stream.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\s+(.*?)\s?\[.*\] /);
                 if (logInfo) {
                     return 'styleLogInfo'
                 }
