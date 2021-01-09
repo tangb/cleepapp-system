@@ -44,7 +44,10 @@
             <md-list-item>
                 <md-icon md-svg-icon="chevron-right"></md-icon>
                 <p>Make configuration backup now</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.backupConfiguration()">Backup config</md-button>
+                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.backupConfiguration()">
+                    <md-icon md-svg-icon="download-box"></md-icon>
+                    Backup config
+                </md-button>
             </md-list-item>
             <md-list-item>
                 <md-icon md-svg-icon="chevron-right"></md-icon>
@@ -59,7 +62,10 @@
                     </md-select>
                 </div>
                 <div class="md-secondary">
-                    <md-button class="md-raised md-primary" ng-click="systemCtl.setBackupDelay()">Set delay</md-button>
+                    <md-button class="md-raised md-primary" ng-click="systemCtl.setBackupDelay()">
+                        <md-icon md-svg-icon="pencil"></md-icon>
+                        Set delay
+                    </md-button>
                 </div>
             </md-list-item>
 
@@ -82,12 +88,12 @@
                 </span>
             </md-list-item>
             <md-list-item>
-                <p>Options below give you a way to disable those events rendering automatically handled by installed applications:</p>
+                <p>Options below give you a way to disable those events automatically rendered by installed applications:</p>
             </md-list-item>
-            <md-list-item ng-repeat="rendering in systemCtl.renderings" ng-click="systemCtl.updateRendering(rendering,false)">
+            <md-list-item ng-repeat="rendering in systemCtl.renderings">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Disable <b>{{rendering.event}}</b> handled by <b>{{rendering.renderer}}</b> module</p>
-                <md-checkbox class="md-secondary" ng-model="rendering.disabled" ng-click="systemCtl.updateRendering(rendering,true)" aria-label="Rendering"></md-checkbox>
+                <p>Disable event <b>{{rendering.event}}</b> rendered by <b>{{rendering.renderer}}</b></p>
+                <md-checkbox class="md-secondary" ng-change="systemCtl.updateRendering(rendering)" ng-model="rendering.disabled" aria-label="Rendering"></md-checkbox>
             </md-list-item>
             <md-list-item ng-if="systemCtl.renderings.length===0">
                 <md-icon md-svg-icon="chevron-right"></md-icon>
