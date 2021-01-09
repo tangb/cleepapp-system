@@ -798,7 +798,7 @@ fi
             not_renderable_events.remove(event)
         self._set_config_field('eventsnotrenderable', not_renderable_events)
 
-    def set_renderable_event(self, renderer_name, event_name, renderable):
+    def set_event_renderable(self, renderer_name, event_name, renderable):
         """
         Set event renderable status
 
@@ -823,13 +823,6 @@ fi
         if not isinstance(renderable, bool):
             raise InvalidParameter('Parameter "renderable" is invalid')
 
-        # configure event
-        try:
-            event_instance = self.events_broker.get_event_instance(event_name)
-        except:
-            self.logger.error('Trying to disable event "%s" rendering while it does not exist' % event_name)
-            raise CommandError('Unable to update event rendering status')
-
         # update config
         events_not_renderable = self._get_config_field('eventsnotrenderable')
         key = '%s%s%s' % (renderer_name, self.EVENT_SEPARATOR, event_name)
@@ -844,7 +837,7 @@ fi
             raise CommandError('Unable to save configuration')
 
         # set event renderable status
-        event_instance.set_renderable(renderer_name, renderable)
+        self.events_broker.set_event_renderable(event_name, renderer_name, renderable)
 
         return self.get_not_renderable_events()
 

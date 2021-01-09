@@ -99,13 +99,16 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
     };
 
     /**
-     * Set event not rendered
+     * Set event renderable
      */
-    self.setEventNotRendered = function(renderer, event, disabled) {
-        return rpcService.sendCommand('set_event_not_rendered', 'system', {'renderer':renderer, 'event':event, 'disabled':disabled})
+    self.setEventRenderable = function(renderer, event, renderable) {
+        return rpcService.sendCommand('set_event_renderable', 'system', {
+            'renderer_name': renderer,
+            'event_name': event,
+            'renderable': renderable,
+        })
             .then(function(resp) {
-                // overwrite system event_not_rendered config value
-                cleepService.modules.system.config.eventsnotrendered = resp.data;
+                cleepService.reloadModuleConfig('system');
             });
     };
 

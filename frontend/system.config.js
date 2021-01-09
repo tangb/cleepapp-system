@@ -153,37 +153,40 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         /**
          * Update renderings
          */
-        self.updateRendering = function(rendering, fromCheckbox) {
-            if( !fromCheckbox ) {
-                //row clicked, we need to update flag
-                rendering.disabled = !rendering.disabled;
-            }
-
-            //update events not rendered status
-            $timeout(function() {
-                systemService.setEventNotRendered(rendering.renderer, rendering.event, rendering.disabled)
-                    .then(function(resp) {
-                        cleepService.reloadModuleConfig('system');
-                    });
-            }, 250);
+        self.updateRendering = function(rendering) {
+            systemService.setEventRenderable(rendering.renderer, rendering.event, !rendering.disabled);
         };
 
         /**
-         * Is event not rendered ?
+         * Is event not renderable ?
          * @param renderer: renderer name
          * @param event: event name
          * @return: true if event is not rendered, false otherwise
          */
-        self._isEventNotRendered = function(renderer, event) {
-            for( var i=0; i<self.eventsNotRendered.length; i++ ) {
-                if( self.eventsNotRendered[i].renderer===renderer && self.eventsNotRendered[i].event===event ) {
-                    //found
+        self._isEventNotRenderable = function(renderer, event) {
+            for (var i=0; i<self.config.eventsnotrenderable.length; i++) {
+                if (self.config.eventsnotrenderable[i].renderer === renderer && self.config.eventsnotrenderable[i].event === event) {
                     return true;
                 }
             }
 
             return false;
         };
+
+        /**
+         * Search event handled by specified profile
+         */
+        self._searchProfileEvent = function(profile, events) {
+            for (var eventName in events) {
+                for (var profileName in events[eventName].profiles) {
+                    if (profileName === profile) {
+                        return eventName;
+                    }
+                }
+            }
+
+            return null;
+        }
 
         /**
          * Init useable renderings list
@@ -193,23 +196,19 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self._initRenderings = function(events, renderers) {
             // prepare renderings list
             // for each renderer search handled events via profile matching
-            for( var renderer in renderers ) {
-                for( i=0; i<renderers[renderer].length; i++ ) {
-                    var renderer_profile = renderers[renderer][i];
-                    for( var event in events ) {
-                        for( var j=0; j<events[event]['profiles'].length; j++ ) {
-                            var event_profile = events[event]['profiles'][j];
-                            if( event_profile===renderer_profile ) {
-                                //match found, save new entry
-                                self.renderings.push({
-                                    'renderer': renderer,
-                                    'event': event,
-                                    'disabled': self._isEventNotRendered(renderer, event)
-                                });
-                                break;
-                            }
-                        }
+            for(var renderer in renderers) {
+                for(var profile in renderers[renderer]) {
+                    var eventName = self._searchProfileEvent(profile, events);
+                    if(!eventName) {
+                        console.warn('Profile "'+profile+'" has no event!');
+                        continue;
                     }
+
+                    self.renderings.push({
+                        'renderer': renderer,
+                        'event': eventName,
+                        'disabled': self._isEventNotRenderable(renderer, eventName),
+                    });
                 }
             }
         };
