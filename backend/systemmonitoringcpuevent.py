@@ -14,7 +14,7 @@ class SystemMonitoringCpuEvent(Event):
     EVENT_CHARTABLE = True
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:
@@ -25,7 +25,7 @@ class SystemMonitoringCpuEvent(Event):
     def get_chart_values(self, params):
         """
         Returns chart values
-        
+
         Args:
             params (dict): event parameters
 
@@ -39,13 +39,13 @@ class SystemMonitoringCpuEvent(Event):
                     },
                     ...
                 ]
-             
+
         """
         cleep = float(params['cleep'])
         system = float(params['system'])
         others = float('{0:.2f}'.format(system - cleep))
         if others<0.0:
-            others = 0.0 
+            others = 0.0
         idle = 100.0 - cleep - others
 
         return [

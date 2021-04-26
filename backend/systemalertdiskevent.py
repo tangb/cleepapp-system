@@ -3,17 +3,17 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemAlertMemoryEvent(Event):
+class SystemAlertDiskEvent(Event):
     """
-    System.alert.memory event
+    System.alert.disk event
     """
 
-    EVENT_NAME = 'system.alert.memory'
+    EVENT_NAME = 'system.alert.disk'
     EVENT_PROPAGATE = True
-    EVENT_PARAMS = ['percent', 'threshold']
+    EVENT_PARAMS = ['percent', 'threshold', 'mountpoint']
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

@@ -251,7 +251,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_monitoring('ola')
-        self.assertEqual(str(cm.exception), 'Parameter "monitoring" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "monitoring" is invalid (specified="ola")')
 
     def test_get_monitoring(self):
         self.init_session()
@@ -433,7 +433,7 @@ class TestsSystem(unittest.TestCase):
         mock_zipfile.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
         mock_zipfile.return_value.close.assert_called()
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
     def test_download_logs_exception(self):
         self.init_session()
 
@@ -452,7 +452,7 @@ class TestsSystem(unittest.TestCase):
     
         self.assertEqual(logs, lines)
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
     def test_get_logs_not_exist(self):
         self.init_session()
         lines = ['line1', 'line2']
@@ -471,7 +471,7 @@ class TestsSystem(unittest.TestCase):
     
         self.session.cleep_filesystem.write_data.assert_called_with('/tmp/cleep.log', '')
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
     def test_clear_logs_not_exist(self):
         self.init_session()
 
@@ -508,7 +508,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_trace('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "trace" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "trace" is invalid (specified="hello")')
 
     def test_set_core_debug_enabled(self):
         self.init_session()
@@ -535,7 +535,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_core_debug('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid (specified="hello")')
 
     def test_set_module_debug_enable(self):
         self.init_session()
@@ -600,11 +600,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_module_debug(True, True)
-        self.assertEqual(str(cm.exception), 'Parameter "module_name" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "module_name" is invalid (specified="True")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_module_debug('dummy', 'hello')
-        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid (specified="hello")')
 
         with self.assertRaises(CommandError) as cm:
             self.module.set_module_debug('dummy', True)
@@ -679,67 +679,49 @@ class TestsSystem(unittest.TestCase):
         self.module._set_config_field.assert_called_with('eventsnotrenderable', ['renderer1__event1'])
         self.assertEqual(self.module._set_config_field.call_count, 1)
 
-    def test_set_renderable_event(self):
+    def test_set_event_renderable(self):
         self.init_session()
-        mock_event = Mock()
-        self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
         self.module._get_config_field = Mock(return_value=['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
         self.module._set_config_field = Mock(return_value=True)
+        self.module.events_broker = Mock()
         
-        result = self.module.set_renderable_event('renderer1', 'event1', True)
+        result = self.module.set_event_renderable('renderer1', 'event1', True)
         logging.debug('Not renderable events: %s' % result)
 
         self.assertEqual(result, [])
         self.module._get_config_field.assert_called_with('eventsnotrenderable')
         self.module._set_config_field.assert_called_with('eventsnotrenderable', [])
-        mock_event.set_renderable.assert_called_with('renderer1', True)
+        self.module.events_broker.set_event_renderable.assert_called_with('event1', 'renderer1', True)
 
-    def test_set_renderable_event_not_renderable(self):
+    def test_set_event_renderable_not_renderable(self):
         self.init_session()
-        mock_event = Mock()
-        self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
         self.module._get_config_field = Mock(return_value=[])
         self.module._set_config_field = Mock(return_value=True)
+        self.module.events_broker = Mock()
         
-        result = self.module.set_renderable_event('renderer1', 'event1', False)
+        result = self.module.set_event_renderable('renderer1', 'event1', False)
         logging.debug('Not renderable events: %s' % result)
 
         self.assertEqual(result, [{'renderer': 'renderer1', 'event': 'event1'}])
         self.module._get_config_field.assert_called_with('eventsnotrenderable')
         self.module._set_config_field.assert_called_with('eventsnotrenderable', ['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
-        mock_event.set_renderable.assert_called_with('renderer1', False)
+        self.module.events_broker.set_event_renderable.assert_called_with('event1', 'renderer1', False)
 
-    def test_set_renderable_event_already_not_renderable(self):
+    def test_set_event_renderable_already_not_renderable(self):
         self.init_session()
-        mock_event = Mock()
-        self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
+        self.module.events_broker = Mock()
         self.module._get_config_field = Mock(return_value=['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
         self.module._set_config_field = Mock(return_value=True)
         
-        result = self.module.set_renderable_event('renderer1', 'event1', False)
+        result = self.module.set_event_renderable('renderer1', 'event1', False)
         logging.debug('Not renderable events: %s' % result)
 
         self.assertEqual(result, [{'renderer': 'renderer1', 'event': 'event1'}])
         self.module._get_config_field.assert_called_with('eventsnotrenderable')
         self.module._set_config_field.assert_called_with('eventsnotrenderable', ['renderer1%sevent1' % self.module.EVENT_SEPARATOR])
-        mock_event.set_renderable.assert_called_with('renderer1', False)
+        self.module.events_broker.set_event_renderable.assert_called_with('event1', 'renderer1', False)
 
-    def test_set_renderable_event_event_not_found(self):
-        self.init_session()
-        mock_event = Mock()
-        self.module.events_broker.get_event_instance = Mock(side_effect=Exception('Test exception'))
-        self.module._get_config_field = Mock(return_value=[])
-        self.module._set_config_field = Mock(return_value=True)
-        
-        with self.assertRaises(CommandError) as cm:
-            self.module.set_renderable_event('renderer1', 'event1', True)
-        self.assertEqual(str(cm.exception), 'Unable to update event rendering status')
-
-        self.assertFalse(self.module._get_config_field.called)
-        self.assertFalse(self.module._set_config_field.called)
-        self.assertFalse(mock_event.set_renderable.called)
-
-    def test_set_renderable_event_unable_to_save_config(self):
+    def test_set_event_renderable_unable_to_save_config(self):
         self.init_session()
         mock_event = Mock()
         self.module.events_broker.get_event_instance = Mock(return_value=mock_event)
@@ -747,37 +729,37 @@ class TestsSystem(unittest.TestCase):
         self.module._set_config_field = Mock(return_value=False)
         
         with self.assertRaises(CommandError) as cm:
-            self.module.set_renderable_event('renderer1', 'event1', True)
+            self.module.set_event_renderable('renderer1', 'event1', True)
         self.assertEqual(str(cm.exception), 'Unable to save configuration')
 
         self.assertFalse(mock_event.set_renderable.called)
 
-    def test_set_renderable_event_exception(self):
+    def test_set_event_renderable_exception(self):
         self.init_session()
 
         with self.assertRaises(MissingParameter) as cm:
-            self.module.set_renderable_event(None, 'event1', True)
+            self.module.set_event_renderable(None, 'event1', True)
         self.assertEqual(str(cm.exception), 'Parameter "renderer_name" is missing')
 
         with self.assertRaises(MissingParameter) as cm:
-            self.module.set_renderable_event('renderer1', None, True)
+            self.module.set_event_renderable('renderer1', None, True)
         self.assertEqual(str(cm.exception), 'Parameter "event_name" is missing')
 
         with self.assertRaises(MissingParameter) as cm:
-            self.module.set_renderable_event('renderer1', 'event1', None)
+            self.module.set_event_renderable('renderer1', 'event1', None)
         self.assertEqual(str(cm.exception), 'Parameter "renderable" is missing')
 
         with self.assertRaises(InvalidParameter) as cm:
-            self.module.set_renderable_event(123, 'event1', True)
-        self.assertEqual(str(cm.exception), 'Parameter "renderer_name" is invalid')
+            self.module.set_event_renderable(123, 'event1', True)
+        self.assertEqual(str(cm.exception), 'Parameter "renderer_name" is invalid (specified="123")')
 
         with self.assertRaises(InvalidParameter) as cm:
-            self.module.set_renderable_event('renderer1', True, True)
-        self.assertEqual(str(cm.exception), 'Parameter "event_name" is invalid')
+            self.module.set_event_renderable('renderer1', True, True)
+        self.assertEqual(str(cm.exception), 'Parameter "event_name" is invalid (specified="True")')
 
         with self.assertRaises(InvalidParameter) as cm:
-            self.module.set_renderable_event('renderer1', 'event1', 'true')
-        self.assertEqual(str(cm.exception), 'Parameter "renderable" is invalid')
+            self.module.set_event_renderable('renderer1', 'event1', 'true')
+        self.assertEqual(str(cm.exception), 'Parameter "renderable" is invalid (specified="true")')
 
     def test_get_renderable_events(self):
         self.init_session()
@@ -825,7 +807,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_crash_report('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "enable" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "enable" is invalid (specified="hello")')
 
     def test_backup_cleep_config(self):
         self.init_session()
@@ -857,15 +839,15 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_cleep_backup_delay(True)
-        self.assertEqual(str(cm.exception), 'Parameter "delay" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "delay" is invalid (specified="True")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_cleep_backup_delay(4)
-        self.assertEqual(str(cm.exception), 'Parameter "delay" must be 5..120')
+        self.assertEqual(str(cm.exception), 'Parameter "delay" is invalid (specified="4")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_cleep_backup_delay(121)
-        self.assertEqual(str(cm.exception), 'Parameter "delay" must be 5..120')
+        self.assertEqual(str(cm.exception), 'Parameter "delay" is invalid (specified="121")')
 
     def test_install_driver_terminated_success(self):
         self.init_session()
@@ -938,11 +920,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver(123, 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="123")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('', 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="")')
 
         with self.assertRaises(MissingParameter) as cm:
             self.module.install_driver('dummy', None)
@@ -950,11 +932,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('dummy', 123)
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="123")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('dummy', '')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="")')
 
     def test_uninstall_driver_terminated_success(self):
         self.init_session()
@@ -1027,11 +1009,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver(123, 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="123")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('', 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="")')
 
         with self.assertRaises(MissingParameter) as cm:
             self.module.uninstall_driver('dummy', None)
@@ -1039,11 +1021,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('dummy', 123)
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="123")')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('dummy', '')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="")')
 
 if __name__ == '__main__':
     # coverage run --omit="*lib/python*/*","test_*" --concurrency=thread test_system.py; coverage report -m -i

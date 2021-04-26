@@ -14,7 +14,7 @@ class SystemDevicePoweroffEvent(Event):
     EVENT_PARAMS = ['delay']
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

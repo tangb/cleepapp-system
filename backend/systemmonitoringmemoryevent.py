@@ -14,7 +14,7 @@ class SystemMonitoringMemoryEvent(Event):
     EVENT_CHARTABLE = True
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

@@ -3,14 +3,14 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemStatusUpdateEvent(Event):
+class SystemAlertMemoryEvent(Event):
     """
-    System.status.update event
+    System.alert.memory event
     """
 
-    EVENT_NAME = u'system.status.update'
-    EVENT_PROPAGATE = False
-    EVENT_PARAMS = [u'status', u'downloadfilesize', u'downloadpercent']
+    EVENT_NAME = 'system.alert.memory'
+    EVENT_PROPAGATE = True
+    EVENT_PARAMS = ['percent', 'threshold']
 
     def __init__(self, params):
         """

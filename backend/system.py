@@ -8,7 +8,7 @@ import time
 from zipfile import ZipFile, ZIP_DEFLATED
 from tempfile import NamedTemporaryFile
 import psutil
-from cleep.exception import InvalidParameter, MissingParameter, CommandError, CommandInfo
+from cleep.exception import InvalidParameter, CommandError, CommandInfo
 from cleep.core import CleepModule
 from cleep.libs.internals.task import Task
 from cleep.libs.internals.console import Console
@@ -26,7 +26,7 @@ class System(CleepModule):
     Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
-    MODULE_VERSION = '2.0.0'
+    MODULE_VERSION = '2.0.1'
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_PRICE = 0
     MODULE_DEPS = []
@@ -228,12 +228,12 @@ class System(CleepModule):
         Returns:
             dict: devices
         """
-        devices = super(System, self).get_module_devices()
+        devices = super().get_module_devices()
 
         for device_uuid in devices:
             if devices[device_uuid]['type'] == 'monitor':
                 devices[device_uuid].update({
-                    'uptime': self.get_uptime(),
+                    'uptime': System.get_uptime(),
                     'cpu': self.get_cpu_usage(),
                     'memory': self.get_memory_usage(),
                 })
@@ -267,10 +267,9 @@ class System(CleepModule):
         Args:
             monitoring (bool): monitoring flag
         """
-        if monitoring is None:
-            raise MissingParameter('Parameter "monitoring" is missing')
-        if not isinstance(monitoring, bool):
-            raise InvalidParameter('Parameter "monitoring" is invalid')
+        self._check_parameters([
+            {'name': 'monitoring', 'type': bool, 'value': monitoring},
+        ])
 
         if not self._set_config_field('monitoring', monitoring):
             raise CommandError('Unable to save configuration')
@@ -384,7 +383,8 @@ class System(CleepModule):
             'cleep': cleep
         }
 
-    def get_uptime(self):
+    @staticmethod
+    def get_uptime():
         """
         Return system uptime (in seconds)
 
@@ -462,7 +462,10 @@ class System(CleepModule):
 
         console = Console()
         resp = console.command(
-            '/sbin/sfdisk -F /dev/`/bin/lsblk --nodeps --noheadings | awk \'{ print $1 }\'` | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G"'
+            ('/sbin/sfdisk -F /dev/`/bin/lsblk --nodeps --noheadings | '
+             r'awk \'{ print $1 }\'` | '
+             'tail -n +5 | '
+             r'grep -E "[0-9]+\.?[0-9]?G"')
         )
 
         return resp['returncode'] == 0
@@ -473,13 +476,14 @@ class System(CleepModule):
         Expand device filesystem without reboot
 
         Note:
-            Code inspired from this article https://medium.com/100-days-of-linux/how-to-resize-a-linux-root-file-system-af3e5096b4e4
+            Code inspired from this article
+            https://medium.com/100-days-of-linux/how-to-resize-a-linux-root-file-system-af3e5096b4e4
 
         Returns:
             bool: True if filesystem expansion succeed
         """
         # write script to filesystem
-        content = """#!/bin/bash
+        content = r"""#!/bin/bash
 
 checkResult() {
     if [ $1 -ne $2 ]; then exit 1; fi
@@ -688,10 +692,9 @@ fi
         Args:
             trace (bool): enable trace
         """
-        if trace is None:
-            raise MissingParameter('Parameter "trace" is missing')
-        if not isinstance(trace, bool):
-            raise InvalidParameter('Parameter "trace" is invalid')
+        self._check_parameters([
+            {'name': 'trace', 'type': bool, 'value': trace},
+        ])
 
         # save log level in conf file
         if trace:
@@ -710,10 +713,9 @@ fi
         Args:
             debug (bool): enable debug
         """
-        if debug is None:
-            raise MissingParameter('Parameter "debug" is missing')
-        if not isinstance(debug, bool):
-            raise InvalidParameter('Parameter "debug" is invalid')
+        self._check_parameters([
+            {'name': 'debug', 'type': bool, 'value': debug},
+        ])
 
         if debug:
             self.bootstrap['internal_bus'].logger.setLevel(logging.DEBUG)
@@ -744,14 +746,10 @@ fi
             module_name (string): module name
             debug (bool): enable debug
         """
-        if not module_name:
-            raise MissingParameter('Parameter "module_name" is missing')
-        if not isinstance(module_name, str):
-            raise InvalidParameter('Parameter "module_name" is invalid')
-        if debug is None:
-            raise MissingParameter('Parameter "debug" is missing')
-        if not isinstance(debug, bool):
-            raise InvalidParameter('Parameter "debug" is invalid')
+        self._check_parameters([
+            {'name': 'module_name', 'type': str, 'value': module_name},
+            {'name': 'debug', 'type': bool, 'value': debug},
+        ])
 
         # save log level in conf file
         if debug:
@@ -810,18 +808,11 @@ fi
         Returns:
             list: list of events not renderable
         """
-        if not renderer_name:
-            raise MissingParameter('Parameter "renderer_name" is missing')
-        if not isinstance(renderer_name, str):
-            raise InvalidParameter('Parameter "renderer_name" is invalid')
-        if not event_name:
-            raise MissingParameter('Parameter "event_name" is missing')
-        if not isinstance(event_name, str):
-            raise InvalidParameter('Parameter "event_name" is invalid')
-        if renderable is None:
-            raise MissingParameter('Parameter "renderable" is missing')
-        if not isinstance(renderable, bool):
-            raise InvalidParameter('Parameter "renderable" is invalid')
+        self._check_parameters([
+            {'name': 'renderer_name', 'type': str, 'value': renderer_name},
+            {'name': 'event_name', 'type': str, 'value': event_name},
+            {'name': 'renderable', 'type': bool, 'value': renderable},
+        ])
 
         # update config
         events_not_renderable = self._get_config_field('eventsnotrenderable')
@@ -878,10 +869,9 @@ fi
         Raises:
             CommandError if error occured
         """
-        if enable is None:
-            raise MissingParameter('Parameter "enable" is missing')
-        if not isinstance(enable, bool):
-            raise InvalidParameter('Parameter "enable" is invalid')
+        self._check_parameters([
+            {'name': 'enable', 'type': bool, 'value': enable}
+        ])
 
         # save config
         if not self._set_config_field('crashreport', enable):
@@ -907,13 +897,12 @@ fi
         Args:
             delay (int): delay in minutes (5..60)
         """
-        # check params
-        if delay is None:
-            raise MissingParameter('Parameter "delay" is missing')
-        if isinstance(delay, int):
-            raise InvalidParameter('Parameter "delay" is invalid')
-        if delay < 5 or delay > 120:
-            raise InvalidParameter('Parameter "delay" must be 5..120')
+        self._check_parameters([{
+            'name': 'delay',
+            'type': int,
+            'value': delay,
+            'validator': lambda val: 5 <= val <= 120
+        }])
 
         if self._set_config_field('cleepbackupdelay', delay):
             self.cleep_backup_delay = delay
@@ -959,15 +948,11 @@ fi
             InvalidParameter: if driver was not found
             CommandInfo: if driver already installed
         """
-        # check parameters
-        if driver_type is None:
-            raise MissingParameter('Parameter "driver_type" is missing')
-        if not isinstance(driver_type, str) or len(driver_type) == 0:
-            raise InvalidParameter('Parameter "driver_type" is invalid')
-        if driver_name is None:
-            raise MissingParameter('Parameter "driver_name" is missing')
-        if not isinstance(driver_name, str) or len(driver_name) == 0:
-            raise InvalidParameter('Parameter "driver_name" is invalid')
+        self._check_parameters([
+            {'name': 'driver_type', 'type': str, 'value': driver_type},
+            {'name': 'driver_name', 'type': str, 'value': driver_name},
+            {'name': 'force', 'type': bool, 'value': force},
+        ])
 
         # get driver
         driver = self.drivers.get_driver(driver_type, driver_name)
@@ -1027,15 +1012,10 @@ fi
             InvalidParameter: if driver was not found
             CommandInfo: if driver is not installed
         """
-        # check parameters
-        if driver_type is None:
-            raise MissingParameter('Parameter "driver_type" is missing')
-        if not isinstance(driver_type, str) or len(driver_type) == 0:
-            raise InvalidParameter('Parameter "driver_type" is invalid')
-        if driver_name is None:
-            raise MissingParameter('Parameter "driver_name" is missing')
-        if not isinstance(driver_name, str) or len(driver_name) == 0:
-            raise InvalidParameter('Parameter "driver_name" is invalid')
+        self._check_parameters([
+            {'name': 'driver_type', 'type': str, 'value': driver_type},
+            {'name': 'driver_name', 'type': str, 'value': driver_name},
+        ])
 
         # get driver instance
         driver = self.drivers.get_driver(driver_type, driver_name)

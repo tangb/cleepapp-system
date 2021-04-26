@@ -3,18 +3,18 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemCleepRestartEvent(Event):
+class SystemDriverUninstallEvent(Event):
     """
-    System.cleep.restart event
+    System.driver.uninstall event
     This event is sent just before restart command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = 'system.cleep.restart'
+    EVENT_NAME = 'system.driver.uninstall'
     EVENT_PROPAGATE = False
-    EVENT_PARAMS = ['delay']
+    EVENT_PARAMS = ['drivertype', 'drivername', 'uninstalling', 'success', 'message']
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

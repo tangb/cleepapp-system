@@ -3,17 +3,17 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemAlertDiskEvent(Event):
+class SystemCleepNeedrestartEvent(Event):
     """
-    System.alert.disk event
+    System.cleep.needrestart event
     """
 
-    EVENT_NAME = 'system.alert.disk'
-    EVENT_PROPAGATE = True
-    EVENT_PARAMS = ['percent', 'threshold', 'mountpoint']
+    EVENT_NAME = 'system.cleep.needrestart'
+    EVENT_PROPAGATE = False
+    EVENT_PARAMS = []
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

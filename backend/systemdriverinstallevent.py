@@ -14,7 +14,7 @@ class SystemDriverInstallEvent(Event):
     EVENT_PARAMS = ['drivertype', 'drivername', 'installing', 'success', 'message']
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

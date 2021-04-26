@@ -3,17 +3,18 @@
 
 from cleep.libs.internals.event import Event
 
-class CoreDeviceDeleteEvent(Event):
+class SystemDeviceRebootEvent(Event):
     """
-    Core.device.delete event
+    System.device.reboot event
+    This event is sent just before reboot command is launched. It allows modules to perform something before.
     """
 
-    EVENT_NAME = 'core.device.delete'
+    EVENT_NAME = 'system.device.reboot'
     EVENT_PROPAGATE = False
-    EVENT_PARAMS = []
+    EVENT_PARAMS = ['delay']
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

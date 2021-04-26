@@ -13,7 +13,7 @@ class SystemDeviceNeedrebootEvent(Event):
     EVENT_PARAMS = []
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:

@@ -3,17 +3,17 @@
 
 from cleep.libs.internals.event import Event
 
-class SystemCleepNeedrestartEvent(Event):
+class CoreDeviceDeleteEvent(Event):
     """
-    System.cleep.needrestart event
+    Core.device.delete event
     """
 
-    EVENT_NAME = 'system.cleep.needrestart'
+    EVENT_NAME = 'core.device.delete'
     EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
     def __init__(self, params):
-        """ 
+        """
         Constructor
 
         Args:
