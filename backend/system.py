@@ -33,7 +33,7 @@ class System(CleepModule):
     MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
     MODULE_LONGDESCRIPTION = 'Application that helps you to configure your system'
     MODULE_TAGS = ['troubleshoot', 'monitoring', 'log', 'rendering', 'driver', 'backup']
-    MODULE_COUNTRY = ''
+    MODULE_COUNTRY = None
     MODULE_URLINFO = 'https://github.com/tangb/cleepmod-system'
     MODULE_URLHELP = None
     MODULE_URLBUGS = 'https://github.com/tangb/cleepmod-system/issues'
@@ -457,15 +457,13 @@ class System(CleepModule):
             bool: True if filesystem needs to be expanded
         """
         if os.path.exists('/boot/CLEEP_ISO'):
-            # flag to avoid resizing partition during Cleep is generation
+            # flag to avoid resizing partition during Cleep is generated
             return False
 
+        # check if free space exists at end of sdcard
         console = Console()
         resp = console.command(
-            ('/sbin/sfdisk -F /dev/`/bin/lsblk --nodeps --noheadings | '
-             r'awk \'{ print $1 }\'` | '
-             'tail -n +5 | '
-             r'grep -E "[0-9]+\.?[0-9]?G"')
+            '/sbin/sfdisk -F /dev/`/bin/lsblk --nodeps --noheadings | awk \'{ print $1 }\'` | tail -n +5 | grep -E "[0-9]+\.?[0-9]?G"'
         )
 
         return resp['returncode'] == 0
