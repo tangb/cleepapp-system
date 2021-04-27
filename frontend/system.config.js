@@ -38,6 +38,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.backupConfiguration = function() {
             systemService.backupCleepConfig()
                 .then(function() {
+                    cleepService.reloadModuleConfig('system');
                     toast.success('Configuration backuped');
                 });
         };
@@ -48,6 +49,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.setBackupDelay = function() {
             systemService.setCleepBackupDelay(Number(self.config.cleepbackupdelay))
                 .then(function() {
+                    cleepService.reloadModuleConfig('system');
                     toast.success('Delay saved');
                 });
         };
