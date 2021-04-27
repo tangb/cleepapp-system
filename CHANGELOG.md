@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.2 - 2021-04-27
+
+* Backend: fix filesystem expand changing way to perform it
+* Frontend: reload config after changes
+
 ## v2.0.1 - 2021-04-12
 
 * Simplify function parameters checking
