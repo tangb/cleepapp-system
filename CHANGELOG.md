@@ -2,7 +2,7 @@
 
 ## v2.0.2 - 2021-04-27
 
-* Backend: fix filesystem expand changing way to perform it
+* Backend: remove filesystem expansion feature. Performed with cleep-iso
 * Frontend: reload config after changes
 
 ## v2.0.1 - 2021-04-12

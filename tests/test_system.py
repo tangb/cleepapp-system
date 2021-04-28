@@ -127,37 +127,10 @@ class TestsSystem(unittest.TestCase):
     def test_on_start(self):
         self.init_session(start_module=False)
         self.module._System__start_monitoring_tasks = Mock()
-        self.module.need_filesystem_expansion = Mock(return_value=True)
-        self.module.expand_filesystem = Mock(return_value=True)
 
         self.session.start_module(self.module)
 
         self.assertTrue(self.module._System__start_monitoring_tasks.called)
-        self.assertTrue(self.module.need_filesystem_expansion.called)
-        self.assertTrue(self.module.expand_filesystem.called)
-
-    def test_on_start_filesystem_expansion_failed(self):
-        self.init_session(start_module=False)
-        self.module._System__start_monitoring_tasks = Mock()
-        self.module.need_filesystem_expansion = Mock(return_value=True)
-        self.module.expand_filesystem = Mock(return_value=False)
-
-        self.session.start_module(self.module)
-
-        self.assertTrue(self.module._System__start_monitoring_tasks.called)
-        self.assertTrue(self.module.need_filesystem_expansion.called)
-
-    def test_on_start_no_need_to_expand_filesystem(self):
-        self.init_session(start_module=False)
-        self.module._System__start_monitoring_tasks = Mock()
-        self.module.need_filesystem_expansion = Mock(return_value=False)
-        self.module.expand_filesystem = Mock()
-
-        self.session.start_module(self.module)
-
-        self.assertTrue(self.module._System__start_monitoring_tasks.called)
-        self.assertTrue(self.module.need_filesystem_expansion.called)
-        self.assertFalse(self.module.expand_filesystem.called)
 
     def test_get_module_config(self):
         self.init_session()
@@ -382,43 +355,6 @@ class TestsSystem(unittest.TestCase):
         logging.debug('Event params: %s' % self.session.get_last_event_params('system.alert.memory'))
         self.assertTrue(self.session.event_called_with('system.alert.memory', {'percent': 90.0, 'threshold': 80.0}))
 
-    @patch('backend.system.Console')
-    def test_need_filesystem_expansion(self, mock_console):
-        self.init_session()
-        mock_console.return_value.command.return_value = {'returncode': 0}
-
-        self.assertTrue(self.module.need_filesystem_expansion())
-
-        self.assertTrue(mock_console.return_value.command.called)
-
-    @patch('backend.system.Console')
-    def test_need_filesystem_expansion(self, mock_console):
-        self.init_session()
-        mock_console.return_value.command.return_value = {'returncode': 1}
-
-        self.assertFalse(self.module.need_filesystem_expansion())
-
-        self.assertTrue(mock_console.return_value.command.called)
-
-    @patch('backend.system.Console')
-    def test_expand_filesystem_succeed(self, mock_console):
-        self.init_session()
-        mock_console.return_value.command.return_value = {'returncode': 0}
-
-        self.assertTrue(self.module.expand_filesystem())
-
-        self.assertTrue(os.path.exists('/tmp/expand.sh'))
-        self.assertTrue(mock_console.return_value.command.called)
-
-    @patch('backend.system.Console')
-    def test_expand_filesystem_failed(self, mock_console):
-        self.init_session()
-        mock_console.return_value.command.return_value = {'returncode': 1}
-
-        self.assertFalse(self.module.expand_filesystem())
-
-        self.assertTrue(mock_console.return_value.command.called)
-
     @patch('os.path.exists', Mock(return_value=True))
     @patch('backend.system.datetime')
     @patch('backend.system.ZipFile')
@@ -433,7 +369,7 @@ class TestsSystem(unittest.TestCase):
         mock_zipfile.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
         mock_zipfile.return_value.close.assert_called()
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
     def test_download_logs_exception(self):
         self.init_session()
 
@@ -452,7 +388,7 @@ class TestsSystem(unittest.TestCase):
     
         self.assertEqual(logs, lines)
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
     def test_get_logs_not_exist(self):
         self.init_session()
         lines = ['line1', 'line2']
@@ -471,7 +407,7 @@ class TestsSystem(unittest.TestCase):
     
         self.session.cleep_filesystem.write_data.assert_called_with('/tmp/cleep.log', '')
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
     def test_clear_logs_not_exist(self):
         self.init_session()
 
