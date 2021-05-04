@@ -1,8 +1,9 @@
 # Changelog
 
-## v2.0.2 - 2021-04-27
+## v2.0.2 - 2021-05-04
 
 * Backend: remove filesystem expansion feature. Performed with cleep-iso
+* Backend: reboot after driver install/uninstall only if required
 * Frontend: reload config after changes
 
 ## v2.0.1 - 2021-04-12

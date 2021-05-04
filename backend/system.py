@@ -843,8 +843,9 @@ class System(CleepModule):
         # send event
         self.driver_install_event.send(data)
 
-        # reboot device if install succeed
-        if success:
+        # reboot device if install succeed and required
+        driver = self.drivers.get_driver(driver_type, driver_name)
+        if success and driver.require_reboot():
             self.reboot_device()
 
     def install_driver(self, driver_type, driver_name, force=False):
@@ -909,7 +910,8 @@ class System(CleepModule):
         self.driver_uninstall_event.send(data)
 
         # reboot device if uninstall succeed
-        if success:
+        driver = self.drivers.get_driver(driver_type, driver_name)
+        if success and driver.require_reboot():
             self.reboot_device()
 
     def uninstall_driver(self, driver_type, driver_name):
