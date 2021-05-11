@@ -103,7 +103,7 @@ class System(CleepModule):
         self.device_poweroff_event = self._get_event('system.device.poweroff')
         self.device_reboot_event = self._get_event('system.device.reboot')
         self.cleep_restart_event = self._get_event('system.cleep.restart')
-        self.cleep_need_restart_event = self._get_event('core.cleep.needrestart')
+        self.cleep_need_restart_event = self._get_event('system.cleep.needrestart')
         self.monitoring_cpu_event = self._get_event('system.monitoring.cpu')
         self.monitoring_memory_event = self._get_event('system.monitoring.memory')
         self.alert_memory_event = self._get_event('system.alert.memory')
@@ -243,7 +243,7 @@ class System(CleepModule):
             event (MessageRequest): event data
         """
         # handle restart event
-        if event['event'] == 'core.cleep.needrestart':
+        if event['event'] == 'system.cleep.needrestart':
             self.__need_restart = True
 
         # handle reboot event

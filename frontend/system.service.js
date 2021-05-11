@@ -165,6 +165,13 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
     );
 
     /**
+     * Catch need restart event
+     */
+    $rootScope.$on('system.cleep.needrestart', function(event, uuid, params) {
+        cleepService.reloadModuleConfig('system');
+    });
+
+    /**
      * Catch cpu monitoring event
      */
     $rootScope.$on('system.monitoring.cpu', function(event, uuid, params) {
