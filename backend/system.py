@@ -247,7 +247,7 @@ class System(CleepModule):
             self.__need_restart = True
 
         # handle reboot event
-        elif event['event'].endswith('system.needreboot'):
+        elif event['event'].endswith('device.needreboot'):
             self._set_config_field('needreboot', True)
 
         if event['event'] == 'parameters.time.now':
@@ -847,8 +847,8 @@ class System(CleepModule):
         self.driver_install_event.send(data)
 
         # reboot device if install succeed and required
-        driver = self.drivers.get_driver(driver_type, driver_name)
-        if success and driver.require_reboot():
+        driver = success and self.drivers.get_driver(driver_type, driver_name)
+        if driver and driver.require_reboot():
             self.reboot_device()
 
     def install_driver(self, driver_type, driver_name, force=False):
@@ -913,8 +913,8 @@ class System(CleepModule):
         self.driver_uninstall_event.send(data)
 
         # reboot device if uninstall succeed
-        driver = self.drivers.get_driver(driver_type, driver_name)
-        if success and driver.require_reboot():
+        driver = success and self.drivers.get_driver(driver_type, driver_name)
+        if driver and driver.require_reboot():
             self.reboot_device()
 
     def uninstall_driver(self, driver_type, driver_name):

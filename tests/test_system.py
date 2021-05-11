@@ -22,6 +22,13 @@ class Datetime():
     minute = 10
     second = 10
 
+class DummyDriver():
+    def __init__(self, require_reboot):
+        self.__require_reboot = require_reboot
+
+    def require_reboot(self):
+        return self.__require_reboot
+
 mock_psutil = MagicMock()
 mock_psutil.boot_time = Mock(return_value=1602175545.2728713)
 mock_psutil.cpu_percent = Mock(return_value=150)
@@ -162,7 +169,7 @@ class TestsSystem(unittest.TestCase):
         self.init_session()
 
         self.module.on_event({
-            'event': 'system.system.needrestart',
+            'event': 'system.cleep.needrestart',
             'params': {}
         })
         
@@ -173,7 +180,7 @@ class TestsSystem(unittest.TestCase):
         self.module._set_config_field = Mock()
 
         self.module.on_event({
-            'event': 'system.system.needreboot',
+            'event': 'system.device.needreboot',
             'params': {}
         })
         
@@ -785,9 +792,11 @@ class TestsSystem(unittest.TestCase):
             self.module.set_cleep_backup_delay(121)
         self.assertEqual(str(cm.exception), 'Parameter "delay" is invalid (specified="121")')
 
-    def test_install_driver_terminated_success(self):
+    def test_install_driver_terminated_success_no_reboot_required(self):
         self.init_session()
         self.module.reboot_device = Mock()
+        self.module.drivers = Mock()
+        self.module.drivers.get_driver.return_value = DummyDriver(False)
 
         self.module._install_driver_terminated('dummy', 'dummy-driver', True, '')
 
@@ -798,11 +807,31 @@ class TestsSystem(unittest.TestCase):
             'success': True,
             'message': '',
         }))
-        self.module.reboot_device.assert_called()
+        self.assertFalse(self.module.reboot_device.called)
+        self.assertTrue(self.module.drivers.get_driver.called)
+
+    def test_install_driver_terminated_success_reboot_required(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+        self.module.drivers = Mock()
+        self.module.drivers.get_driver.return_value = DummyDriver(True)
+
+        self.module._install_driver_terminated('dummy', 'dummy-driver', True, '')
+
+        self.assertTrue(self.session.event_called_with('system.driver.install', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'installing': False,
+            'success': True,
+            'message': '',
+        }))
+        self.assertTrue(self.module.reboot_device.called)
+        self.assertTrue(self.module.drivers.get_driver.called)
 
     def test_install_driver_terminated_failure(self):
         self.init_session()
         self.module.reboot_device = Mock()
+        self.module.drivers = Mock()
 
         self.module._install_driver_terminated('dummy', 'dummy-driver', False, 'error occured')
 
@@ -814,6 +843,7 @@ class TestsSystem(unittest.TestCase):
             'message': 'error occured',
         }))
         self.assertFalse(self.module.reboot_device.called)
+        self.assertFalse(self.module.drivers.get_driver.called)
 
     def test_install_driver(self):
         self.init_session()
@@ -874,9 +904,11 @@ class TestsSystem(unittest.TestCase):
             self.module.install_driver('dummy', '')
         self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="")')
 
-    def test_uninstall_driver_terminated_success(self):
+    def test_uninstall_driver_terminated_success_no_reboot_required(self):
         self.init_session()
         self.module.reboot_device = Mock()
+        self.module.drivers = Mock()
+        self.module.drivers.get_driver.return_value = DummyDriver(False)
 
         self.module._uninstall_driver_terminated('dummy', 'dummy-driver', True, '')
 
@@ -887,7 +919,26 @@ class TestsSystem(unittest.TestCase):
             'success': True,
             'message': '',
         }))
-        self.module.reboot_device.assert_called()
+        self.assertFalse(self.module.reboot_device.called)
+        self.assertTrue(self.module.drivers.get_driver.called)
+
+    def test_uninstall_driver_terminated_success_reboot_required(self):
+        self.init_session()
+        self.module.reboot_device = Mock()
+        self.module.drivers = Mock()
+        self.module.drivers.get_driver.return_value = DummyDriver(True)
+
+        self.module._uninstall_driver_terminated('dummy', 'dummy-driver', True, '')
+
+        self.assertTrue(self.session.event_called_with('system.driver.uninstall', {
+            'drivertype': 'dummy',
+            'drivername': 'dummy-driver',
+            'uninstalling': False,
+            'success': True,
+            'message': '',
+        }))
+        self.assertTrue(self.module.reboot_device.called)
+        self.assertTrue(self.module.drivers.get_driver.called)
 
     def test_uninstall_driver_terminated_failure(self):
         self.init_session()
