@@ -114,6 +114,9 @@ class System(CleepModule):
         """
         Configure module
         """
+        # reset needreboot flag
+        self._set_config_field('needreboot', False)
+
         # configure crash report
         self._configure_crash_report(self._get_config_field('crashreport'))
 
@@ -240,7 +243,7 @@ class System(CleepModule):
             event (MessageRequest): event data
         """
         # handle restart event
-        if event['event'].endswith('system.needrestart'):
+        if event['event'] == 'core.cleep.needrestart':
             self.__need_restart = True
 
         # handle reboot event
