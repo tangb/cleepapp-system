@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.3 - 2021-05-11
+
+* Move needrestart event to core
+
 ## v2.0.2 - 2021-05-04
 
 * Backend: remove filesystem expansion feature. Performed with cleep-iso
