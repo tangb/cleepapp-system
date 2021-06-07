@@ -146,9 +146,24 @@ class TestsSystem(unittest.TestCase):
 
         config = self.module.get_module_config()
         logging.debug('Config: %s' % config)
-        self.assertEqual(
-            sorted(['needrestart', 'version', 'eventsnotrenderable', 'debug', 'cleepbackupdelay', 'monitoring', 'ssl', 'auth', 'rpcport', 'crashreport', 'needreboot', 'devices']),
-            sorted(config.keys()),
+        self.assertCountEqual(
+            [
+                'needrestart',
+                'version',
+                'eventsnotrenderable',
+                'debug',
+                'cleepbackupdelay',
+                'monitoring',
+                'ssl',
+                'auth',
+                'rpcport',
+                'crashreport',
+                'needreboot',
+                'devices',
+                'enablepowerled',
+                'enableactivityled'
+            ],
+            config.keys(),
         )
 
     def test_get_module_devices(self):
@@ -231,7 +246,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_monitoring('ola')
-        self.assertEqual(str(cm.exception), 'Parameter "monitoring" is invalid (specified="ola")')
+        self.assertEqual(str(cm.exception), 'Parameter "monitoring" must be of type "bool"')
 
     def test_get_monitoring(self):
         self.init_session()
@@ -451,7 +466,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_trace('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "trace" is invalid (specified="hello")')
+        self.assertEqual(str(cm.exception), 'Parameter "trace" must be of type "bool"')
 
     def test_set_core_debug_enabled(self):
         self.init_session()
@@ -478,7 +493,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_core_debug('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid (specified="hello")')
+        self.assertEqual(str(cm.exception), 'Parameter "debug" must be of type "bool"')
 
     def test_set_module_debug_enable(self):
         self.init_session()
@@ -543,11 +558,11 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_module_debug(True, True)
-        self.assertEqual(str(cm.exception), 'Parameter "module_name" is invalid (specified="True")')
+        self.assertEqual(str(cm.exception), 'Parameter "module_name" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_module_debug('dummy', 'hello')
-        self.assertEqual(str(cm.exception), 'Parameter "debug" is invalid (specified="hello")')
+        self.assertEqual(str(cm.exception), 'Parameter "debug" must be of type "bool"')
 
         with self.assertRaises(CommandError) as cm:
             self.module.set_module_debug('dummy', True)
@@ -694,15 +709,15 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_event_renderable(123, 'event1', True)
-        self.assertEqual(str(cm.exception), 'Parameter "renderer_name" is invalid (specified="123")')
+        self.assertEqual(str(cm.exception), 'Parameter "renderer_name" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_event_renderable('renderer1', True, True)
-        self.assertEqual(str(cm.exception), 'Parameter "event_name" is invalid (specified="True")')
+        self.assertEqual(str(cm.exception), 'Parameter "event_name" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_event_renderable('renderer1', 'event1', 'true')
-        self.assertEqual(str(cm.exception), 'Parameter "renderable" is invalid (specified="true")')
+        self.assertEqual(str(cm.exception), 'Parameter "renderable" must be of type "bool"')
 
     def test_get_renderable_events(self):
         self.init_session()
@@ -750,7 +765,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.set_crash_report('hello')
-        self.assertEqual(str(cm.exception), 'Parameter "enable" is invalid (specified="hello")')
+        self.assertEqual(str(cm.exception), 'Parameter "enable" must be of type "bool"')
 
     def test_backup_cleep_config(self):
         self.init_session()
@@ -886,7 +901,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver(123, 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="123")')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('', 'dummy-driver')
@@ -898,7 +913,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('dummy', 123)
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="123")')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.install_driver('dummy', '')
@@ -996,7 +1011,7 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver(123, 'dummy-driver')
-        self.assertEqual(str(cm.exception), 'Parameter "driver_type" is invalid (specified="123")')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_type" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('', 'dummy-driver')
@@ -1008,11 +1023,90 @@ class TestsSystem(unittest.TestCase):
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('dummy', 123)
-        self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="123")')
+        self.assertEqual(str(cm.exception), 'Parameter "driver_name" must be of type "str"')
 
         with self.assertRaises(InvalidParameter) as cm:
             self.module.uninstall_driver('dummy', '')
         self.assertEqual(str(cm.exception), 'Parameter "driver_name" is invalid (specified="")')
+
+    def test_apply_tweaks(self):
+        self.init_session()
+        self.module.tweak_power_led = Mock()
+        self.module.tweak_activity_led = Mock()
+        self.module._get_config_field = Mock(side_effect=[True, True])
+
+        self.module._System__apply_tweaks()
+
+        self.module.tweak_power_led.assert_called()
+        self.module.tweak_activity_led.assert_called()
+
+    @patch('backend.system.Console')
+    def test_tweak_power_led_turn_on(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 0 }
+
+        self.module.tweak_power_led(True)
+
+        self.module._set_config_field.assert_called_with('enablepowerled', True)
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 255.*'))
+
+    @patch('backend.system.Console')
+    def test_tweak_power_led_turn_off(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 0 }
+
+        self.module.tweak_power_led(False)
+
+        self.module._set_config_field.assert_called_with('enablepowerled', False)
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 0.*'))
+
+    @patch('backend.system.Console')
+    def test_tweak_power_led_failed(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 1 }
+
+        with self.assertRaises(CommandError) as cm:
+            self.module.tweak_power_led(True)
+        self.assertEqual(str(cm.exception), 'Error tweaking power led')
+
+        self.assertFalse(self.module._set_config_field.called)
+
+    @patch('backend.system.Console')
+    def test_tweak_activity_led_turn_on(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 0 }
+
+        self.module.tweak_activity_led(True)
+
+        self.module._set_config_field.assert_called_with('enableactivityled', True)
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 255.*'))
+
+    @patch('backend.system.Console')
+    def test_tweak_activity_led_turn_off(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 0 }
+
+        self.module.tweak_activity_led(False)
+
+        self.module._set_config_field.assert_called_with('enableactivityled', False)
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 0.*'))
+
+    @patch('backend.system.Console')
+    def test_tweak_activity_led_failed(self, mock_console):
+        self.init_session()
+        self.module._set_config_field = Mock()
+        mock_console.return_value.command.return_value = { 'returncode': 1 }
+
+        with self.assertRaises(CommandError) as cm:
+            self.module.tweak_activity_led(True)
+        self.assertEqual(str(cm.exception), 'Error tweaking activity led')
+
+        self.assertFalse(self.module._set_config_field.called)
 
 if __name__ == '__main__':
     # coverage run --omit="*lib/python*/*","test_*" --concurrency=thread test_system.py; coverage report -m -i

@@ -50,6 +50,8 @@ class System(CleepModule):
         'crashreport': True,
         'cleepbackupdelay': 15,
         'needreboot': False,
+        'enablepowerled': True,
+        'enableactivityled': True,
     }
 
     MONITORING_CPU_DELAY = 60.0 #1 minute
@@ -163,6 +165,9 @@ class System(CleepModule):
 
         # configure not renderable events
         self._set_not_renderable_events()
+
+        # apply tweaks
+        self.__apply_tweaks()
 
     def _on_start(self):
         """
@@ -956,4 +961,45 @@ class System(CleepModule):
 
         return True
 
+    def __apply_tweaks(self):
+        """
+        Apply all tweaks
+        """
+        if self._get_config_field('enablepowerled'):
+            self.tweak_power_led(True)
+
+        if self._get_config_field('enableactivityled'):
+            self.tweak_activity_led(True)
+
+    def tweak_power_led(self, enable):
+        """
+        Tweak raspberry pi power led
+
+        Args:
+            enable (bool): True to turn on led
+        """
+        echo = '255' if enable else '0'
+        console = Console()
+        resp = console.command('echo %s > /sys/class/leds/led1/brightness' % echo)
+        if resp['returncode'] != 0:
+            raise CommandError('Error tweaking power led')
+
+        # store led status
+        self._set_config_field('enablepowerled', enable)
+
+    def tweak_activity_led(self, enable):
+        """
+        Tweak raspberry pi activity led
+
+        Args:
+            enable (bool): True to turn on led
+        """
+        echo = '255' if enable else '0'
+        console = Console()
+        resp = console.command('echo %s > /sys/class/leds/led0/brightness' % echo)
+        if resp['returncode'] != 0:
+            raise CommandError('Error tweaking activity led')
+
+        # store led status
+        self._set_config_field('enableactivityled', enable)
 

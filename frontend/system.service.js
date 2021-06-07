@@ -134,6 +134,20 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
     };
 
     /**
+     * Tweak activity led
+     */
+    self.tweakActivityLed = function(enable) {
+        return rpcService.sendCommand('tweak_activity_led', 'system', {'enable': enable});
+    };
+
+    /**
+     * Tweak power led
+     */
+    self.tweakPowerLed = function(enable) {
+        return rpcService.sendCommand('tweak_power_led', 'system', {'enable': enable});
+    };
+
+    /**
      * Watch for system config changes to add restart/reboot buttons if restart/reboot is needed
      */
     $rootScope.$watchCollection(

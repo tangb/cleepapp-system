@@ -83,6 +83,29 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         };
 
         /**
+         * Save tweak LED
+         */
+        self.updateTweakLed = function(led, fromCheckbox) {
+            if( !fromCheckbox ) {
+                // row clicked, we need to update flag
+                if (led === 'activity') {
+                    self.config.enableactivityled = !self.config.enableactivityled;
+                } else {
+                    self.config.enablepowerled = !self.config.enablepowerled;
+                }
+            }
+
+            // delay update to make sure model value is updated
+            callback = led === 'activity' ? systemService.tweakActivityLed : systemService.tweakPowerLed;
+            value = led === 'activity' ? self.config.enableactivityled : self.config.enablepowerled;
+            callback(value)
+                .then(function(resp) {
+                    cleepService.reloadModuleConfig('system');
+                    toast.success('LED tweaked');
+                });
+        };
+
+        /**
          * Save crash report
          */
         self.updateCrashReport = function(fromCheckbox) {

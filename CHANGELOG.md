@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.0 - 2021-05-18
+
+* Implement power and activity leds tweaking
+
 ## v2.0.3 - 2021-05-11
 
 * Backend: fix needrestart event issue

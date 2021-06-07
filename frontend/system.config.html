@@ -139,6 +139,19 @@
                 </md-button>
             </md-list-item>
 
+            <!-- tweaks -->
+            <md-subheader class="md-no-sticky">Tweaks</md-subheader>
+            <md-list-item>
+                <md-icon md-svg-icon="chevron-right"></md-icon>
+                <p>Enable board activity LED</p>
+                <md-checkbox class="md-secondary" ng-model="systemCtl.config.enableactivityled" ng-change="systemCtl.updateTweakLed('activity', true)" aria-label="Activity LED"></md-checkbox>
+            </md-list-item>
+            <md-list-item>
+                <md-icon md-svg-icon="chevron-right"></md-icon>
+                <p>Enable board power LED</p>
+                <md-checkbox class="md-secondary" ng-model="systemCtl.config.enablepowerled" ng-change="systemCtl.updateTweakLed('power', true)" aria-label="Power LED"></md-checkbox>
+            </md-list-item>
+
             <!-- monitoring -->
             <md-subheader class="md-no-sticky">Monitoring</md-subheader>
             <md-list-item>
