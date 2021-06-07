@@ -26,7 +26,7 @@ class System(CleepModule):
     Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
-    MODULE_VERSION = '2.0.3'
+    MODULE_VERSION = '2.1.0'
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_DEPS = []
     MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
