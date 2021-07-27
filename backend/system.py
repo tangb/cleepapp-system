@@ -26,7 +26,7 @@ class System(CleepModule):
     Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
-    MODULE_VERSION = '2.1.0'
+    MODULE_VERSION = '2.1.1'
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_DEPS = []
     MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
@@ -965,21 +965,37 @@ class System(CleepModule):
         Apply all tweaks
         """
         if self._get_config_field('enablepowerled'):
-            self.tweak_power_led(True)
+            try:
+                self.tweak_power_led(True)
+            except Exception:
+                pass
 
         if self._get_config_field('enableactivityled'):
-            self.tweak_activity_led(True)
+            try:
+                self.tweak_activity_led(True)
+            except Exception:
+                pass
 
     def tweak_power_led(self, enable):
         """
         Tweak raspberry pi power led
 
+        Note:
+            Infos from https://www.jeffgeerling.com/blogs/jeff-geerling/controlling-pwr-act-leds-raspberry-pi
+
         Args:
             enable (bool): True to turn on led
         """
-        echo = '255' if enable else '0'
+        if not os.path.exists('/sys/class/leds/led1'):
+            self.logger.info('Power led not found on this device')
+            return
+
+        raspi = Tools.raspberry_pi_infos()
+        off_value = '0' if raspi['model'].lower().find('zero') else '1'
+        on_value = '1' if raspi['model'].lower().find('zero') else '0'
+        echo_value = on_value if enable else off_value
         console = Console()
-        resp = console.command('echo %s > /sys/class/leds/led1/brightness' % echo)
+        resp = console.command('echo %s > /sys/class/leds/led1/brightness' % echo_value)
         if resp['returncode'] != 0:
             raise CommandError('Error tweaking power led')
 
@@ -993,9 +1009,16 @@ class System(CleepModule):
         Args:
             enable (bool): True to turn on led
         """
-        echo = '255' if enable else '0'
+        if not os.path.exists('/sys/class/leds/led0'):
+            self.logger.info('Activity led not found on this device')
+            return
+
+        raspi = Tools.raspberry_pi_infos()
+        off_value = '0' if raspi['model'].lower().find('zero') else '1'
+        on_value = '1' if raspi['model'].lower().find('zero') else '0'
+        echo_value = on_value if enable else off_value
         console = Console()
-        resp = console.command('echo %s > /sys/class/leds/led0/brightness' % echo)
+        resp = console.command('echo %s > /sys/class/leds/led0/brightness' % echo_value)
         if resp['returncode'] != 0:
             raise CommandError('Error tweaking activity led')
 

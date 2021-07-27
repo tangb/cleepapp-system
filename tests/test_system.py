@@ -10,6 +10,7 @@ from cleep.exception import InvalidParameter, MissingParameter, CommandError, Un
 from cleep.libs.tests import session
 from mock import Mock, patch, MagicMock
 
+
 class VirtualMemory():
     total = 512
     available = 256
@@ -391,7 +392,7 @@ class TestsSystem(unittest.TestCase):
         mock_zipfile.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
         mock_zipfile.return_value.close.assert_called()
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_download_logs_exception(self):
         self.init_session()
 
@@ -410,7 +411,7 @@ class TestsSystem(unittest.TestCase):
     
         self.assertEqual(logs, lines)
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_get_logs_not_exist(self):
         self.init_session()
         lines = ['line1', 'line2']
@@ -429,7 +430,7 @@ class TestsSystem(unittest.TestCase):
     
         self.session.cleep_filesystem.write_data.assert_called_with('/tmp/cleep.log', '')
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, False]))
+    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_clear_logs_not_exist(self):
         self.init_session()
 
@@ -1049,7 +1050,7 @@ class TestsSystem(unittest.TestCase):
         self.module.tweak_power_led(True)
 
         self.module._set_config_field.assert_called_with('enablepowerled', True)
-        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 255.*'))
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 1.*'))
 
     @patch('backend.system.Console')
     def test_tweak_power_led_turn_off(self, mock_console):
@@ -1074,6 +1075,17 @@ class TestsSystem(unittest.TestCase):
 
         self.assertFalse(self.module._set_config_field.called)
 
+    def test_tweak_power_led_no_file(self):
+        self.init_session()
+        self.module._set_config_field = Mock()
+
+        with patch('backend.system.Console') as mock_console:
+            with patch('os.path.exists', Mock(return_value=False)):
+                self.module.tweak_power_led(True)
+
+        self.assertFalse(self.module._set_config_field.called)
+        self.assertFalse(mock_console.return_value.command.called)
+
     @patch('backend.system.Console')
     def test_tweak_activity_led_turn_on(self, mock_console):
         self.init_session()
@@ -1083,7 +1095,7 @@ class TestsSystem(unittest.TestCase):
         self.module.tweak_activity_led(True)
 
         self.module._set_config_field.assert_called_with('enableactivityled', True)
-        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 255.*'))
+        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 1.*'))
 
     @patch('backend.system.Console')
     def test_tweak_activity_led_turn_off(self, mock_console):
@@ -1107,6 +1119,17 @@ class TestsSystem(unittest.TestCase):
         self.assertEqual(str(cm.exception), 'Error tweaking activity led')
 
         self.assertFalse(self.module._set_config_field.called)
+
+    def test_tweak_activity_led_no_file(self):
+        self.init_session()
+        self.module._set_config_field = Mock()
+
+        with patch('backend.system.Console') as mock_console:
+            with patch('os.path.exists', Mock(return_value=False)):
+                self.module.tweak_activity_led(True)
+
+        self.assertFalse(self.module._set_config_field.called)
+        self.assertFalse(mock_console.return_value.command.called)
 
 if __name__ == '__main__':
     # coverage run --omit="*lib/python*/*","test_*" --concurrency=thread test_system.py; coverage report -m -i
