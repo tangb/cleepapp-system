@@ -1,5 +1,10 @@
 # Changelog
 
+## [UNRELEASED]
+
+### Added
+* Codemirror CSS from core moved to system app
+
 ## [2.1.1] - 2021-07-27
 
 ### Fixed

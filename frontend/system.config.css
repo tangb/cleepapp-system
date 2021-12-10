@@ -1,0 +1,11 @@
+.codemirror-header > .CodeMirror {
+    border: 1px solid #eee;
+    height: 150px !important;
+}
+
+.codemirror-code > .CodeMirror {
+    border: 1px solid #eee;
+    /* height: 500px !important; */
+    height: auto;
+}
+

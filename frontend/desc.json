@@ -7,6 +7,6 @@
     "config": {
         "js": ["system.config.js", "codemirror/codemirror-cleeplog.js"],
         "html": ["system.config.html", "update.dialog.html"],
-        "css": ["codemirror/codemirror-cleeplog.css"]
+        "css": ["codemirror/codemirror-cleeplog.css", "system.config.css"]
     }
 }
