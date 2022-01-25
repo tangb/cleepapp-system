@@ -1,9 +1,11 @@
 # Changelog
 
-## [UNRELEASED]
+## [2.1.2] - 2022-01-25
+### Fixed
+- Move system python dependencies from core
 
 ### Added
-* Codemirror CSS from core moved to system app
+- Codemirror CSS from core moved to system app
 
 ## [2.1.1] - 2021-07-27
 
