@@ -392,49 +392,54 @@ class TestsSystem(unittest.TestCase):
         mock_zipfile.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
         mock_zipfile.return_value.close.assert_called()
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_download_logs_exception(self):
         self.init_session()
 
-        with self.assertRaises(CommandError) as cm:
-            self.module.download_logs()
+        with patch('os.path.exists') as mock_path_exists:
+            mock_path_exists.return_value = False
+            with self.assertRaises(CommandError) as cm:
+                self.module.download_logs()
         self.assertEqual(str(cm.exception), 'Logs file doesn\'t exist')
 
-    @patch('os.path.exists', Mock(return_value=True))
     def test_get_logs(self):
         self.init_session()
         lines = ['line1', 'line2']
         self.session.cleep_filesystem.read_data = Mock(return_value=lines)
 
-        logs = self.module.get_logs()
-        logging.debug('Logs: %s' % logs)
+        with patch('os.path.exists') as mock_path_exists:
+            mock_path_exists.return_value = True
+            logs = self.module.get_logs()
+            logging.debug('Logs: %s' % logs)
     
         self.assertEqual(logs, lines)
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_get_logs_not_exist(self):
         self.init_session()
         lines = ['line1', 'line2']
         self.session.cleep_filesystem.read_data = Mock(return_value=lines)
 
-        logs = self.module.get_logs()
-        logging.debug('Logs: %s' % logs)
+        with patch('os.path.exists') as mock_path_exists:
+            mock_path_exists.return_value = False
+            logs = self.module.get_logs()
+            logging.debug('Logs: %s' % logs)
     
         self.assertEqual(logs, [])
 
-    @patch('os.path.exists', Mock(return_value=True))
     def test_clear_logs(self):
         self.init_session()
 
-        self.module.clear_logs()
+        with patch('os.path.exists') as mock_path_exists:
+            mock_path_exists.return_value = True
+            self.module.clear_logs()
     
         self.session.cleep_filesystem.write_data.assert_called_with('/tmp/cleep.log', '')
 
-    @patch('os.path.exists', Mock(side_effect=[True, True, True, True, True, True, False]))
     def test_clear_logs_not_exist(self):
         self.init_session()
 
-        self.module.clear_logs()
+        with patch('os.path.exists') as mock_path_exists:
+            mock_path_exists.return_value = False
+            self.module.clear_logs()
     
         self.assertFalse(self.session.cleep_filesystem.write_data.called)
 
