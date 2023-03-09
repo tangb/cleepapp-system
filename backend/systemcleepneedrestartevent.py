@@ -3,12 +3,13 @@
 
 from cleep.libs.internals.event import Event
 
+
 class SystemCleepNeedrestartEvent(Event):
     """
     System.cleep.needrestart event
     """
 
-    EVENT_NAME = 'system.cleep.needrestart'
+    EVENT_NAME = "system.cleep.needrestart"
     EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
@@ -20,4 +21,3 @@ class SystemCleepNeedrestartEvent(Event):
             params (dict): event parameters
         """
         Event.__init__(self, params)
-

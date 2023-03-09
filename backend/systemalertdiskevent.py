@@ -3,14 +3,15 @@
 
 from cleep.libs.internals.event import Event
 
+
 class SystemAlertDiskEvent(Event):
     """
     System.alert.disk event
     """
 
-    EVENT_NAME = 'system.alert.disk'
+    EVENT_NAME = "system.alert.disk"
     EVENT_PROPAGATE = True
-    EVENT_PARAMS = ['percent', 'threshold', 'mountpoint']
+    EVENT_PARAMS = ["percent", "threshold", "mountpoint"]
 
     def __init__(self, params):
         """
@@ -20,4 +21,3 @@ class SystemAlertDiskEvent(Event):
             params (dict): event parameters
         """
         Event.__init__(self, params)
-

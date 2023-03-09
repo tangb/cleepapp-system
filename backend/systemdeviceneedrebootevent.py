@@ -3,12 +3,13 @@
 
 from cleep.libs.internals.event import Event
 
+
 class SystemDeviceNeedrebootEvent(Event):
     """
     System.device.needreboot event
     """
 
-    EVENT_NAME = 'system.device.needreboot'
+    EVENT_NAME = "system.device.needreboot"
     EVENT_PROPAGATE = False
     EVENT_PARAMS = []
 
@@ -20,4 +21,3 @@ class SystemDeviceNeedrebootEvent(Event):
             params (dict): event parameters
         """
         Event.__init__(self, params)
-

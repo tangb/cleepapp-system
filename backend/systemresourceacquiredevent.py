@@ -3,14 +3,15 @@
 
 from cleep.libs.internals.event import Event
 
+
 class SystemResourceAcquiredEvent(Event):
     """
     system.resource.acquired event
     """
 
-    EVENT_NAME = u'system.resource.acquired'
+    EVENT_NAME = u"system.resource.acquired"
     EVENT_PROPAGATE = False
-    EVENT_PARAMS = [u'resource', u'module']
+    EVENT_PARAMS = [u"resource", u"module"]
 
     def __init__(self, params):
         """
@@ -20,4 +21,3 @@ class SystemResourceAcquiredEvent(Event):
             params (dict): event parameters
         """
         Event.__init__(self, params)
-

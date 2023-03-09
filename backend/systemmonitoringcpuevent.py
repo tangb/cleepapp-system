@@ -3,14 +3,15 @@
 
 from cleep.libs.internals.event import Event
 
+
 class SystemMonitoringCpuEvent(Event):
     """
     System.monitoring.cpu event
     """
 
-    EVENT_NAME = 'system.monitoring.cpu'
+    EVENT_NAME = "system.monitoring.cpu"
     EVENT_PROPAGATE = False
-    EVENT_PARAMS = ['system', 'cleep']
+    EVENT_PARAMS = ["system", "cleep"]
     EVENT_CHARTABLE = True
 
     def __init__(self, params):
@@ -41,16 +42,15 @@ class SystemMonitoringCpuEvent(Event):
                 ]
 
         """
-        cleep = float(params['cleep'])
-        system = float(params['system'])
-        others = float('{0:.2f}'.format(system - cleep))
-        if others<0.0:
+        cleep = float(params["cleep"])
+        system = float(params["system"])
+        others = float("{0:.2f}".format(system - cleep))
+        if others < 0.0:
             others = 0.0
         idle = 100.0 - cleep - others
 
         return [
-            {'field': 'cleep', 'value': cleep},
-            {'field': 'others', 'value': others},
-            {'field': 'idle', 'value': idle}
+            {"field": "cleep", "value": cleep},
+            {"field": "others", "value": others},
+            {"field": "idle", "value": idle},
         ]
-
