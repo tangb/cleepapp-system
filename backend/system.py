@@ -26,7 +26,7 @@ class System(CleepModule):
     Helps controlling the system device (poweroff, reboot) and monitoring it, and the connected hardware
     """
     MODULE_AUTHOR = 'Cleep'
-    MODULE_VERSION = '2.1.2'
+    MODULE_VERSION = '2.2.0'
     MODULE_CATEGORY = 'APPLICATION'
     MODULE_DEPS = []
     MODULE_DESCRIPTION = 'Helps controlling and monitoring the device'
@@ -296,7 +296,7 @@ class System(CleepModule):
 
         # and reboot system
         console = Console()
-        console.command_delayed('reboot', delay)
+        console.command_delayed('reboot -f', delay)
 
     def poweroff_device(self, delay=5.0):
         """
@@ -312,7 +312,7 @@ class System(CleepModule):
 
         # and reboot system
         console = Console()
-        console.command_delayed('poweroff', delay)
+        console.command_delayed('poweroff -f', delay)
 
     def restart_cleep(self, delay=3.0):
         """
@@ -964,17 +964,17 @@ class System(CleepModule):
         """
         Apply all tweaks
         """
-        if self._get_config_field('enablepowerled'):
-            try:
-                self.tweak_power_led(True)
-            except Exception:
-                pass
+        power_led_enabled = self._get_config_field('enablepowerled', False)
+        try:
+            self.tweak_power_led(power_led_enabled)
+        except Exception as error:
+            self.logger.error(error.message)
 
-        if self._get_config_field('enableactivityled'):
-            try:
-                self.tweak_activity_led(True)
-            except Exception:
-                pass
+        activity_led_enabled = self._get_config_field('enableactivityled', False)
+        try:
+            self.tweak_activity_led(activity_led_enabled)
+        except Exception as error:
+            self.logger.error(error.message)
 
     def tweak_power_led(self, enable):
         """
@@ -994,8 +994,9 @@ class System(CleepModule):
         off_value = '0' if raspi['model'].lower().find('zero') else '1'
         on_value = '1' if raspi['model'].lower().find('zero') else '0'
         echo_value = on_value if enable else off_value
+        self.logger.debug(f"Tweaking power led with value {echo_value}")
         console = Console()
-        resp = console.command('echo %s > /sys/class/leds/led1/brightness' % echo_value)
+        resp = console.command(f'echo {echo_value} > /sys/class/leds/led1/brightness')
         if resp['returncode'] != 0:
             raise CommandError('Error tweaking power led')
 
@@ -1005,6 +1006,9 @@ class System(CleepModule):
     def tweak_activity_led(self, enable):
         """
         Tweak raspberry pi activity led
+
+        Note:
+            Infos from https://www.jeffgeerling.com/blogs/jeff-geerling/controlling-pwr-act-leds-raspberry-pi
 
         Args:
             enable (bool): True to turn on led
@@ -1017,10 +1021,19 @@ class System(CleepModule):
         off_value = '0' if raspi['model'].lower().find('zero') else '1'
         on_value = '1' if raspi['model'].lower().find('zero') else '0'
         echo_value = on_value if enable else off_value
+        self.logger.debug(f"Tweaking activity led with value {echo_value}")
         console = Console()
-        resp = console.command('echo %s > /sys/class/leds/led0/brightness' % echo_value)
+
+        # update led status
+        resp = console.command(f'echo {echo_value} > /sys/class/leds/led0/brightness')
         if resp['returncode'] != 0:
             raise CommandError('Error tweaking activity led')
+
+        # restore default trigger mode to mmc0 activity if necessary
+        if enable:
+            resp = console.command('echo mmc0 > /sys/class/leds/led0/trigger')
+            if resp['returncode'] != 0:
+                raise CommandError('Error tweaking activity led trigger mode')
 
         # store led status
         self._set_config_field('enableactivityled', enable)

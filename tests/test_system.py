@@ -1100,7 +1100,8 @@ class TestsSystem(unittest.TestCase):
         self.module.tweak_activity_led(True)
 
         self.module._set_config_field.assert_called_with('enableactivityled', True)
-        mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 1.*'))
+        mock_console.return_value.command.assert_any_call(session.PatternArg('.*echo 1.*'))
+        mock_console.return_value.command.assert_any_call(session.PatternArg('.*echo mmc0.*'))
 
     @patch('backend.system.Console')
     def test_tweak_activity_led_turn_off(self, mock_console):
@@ -1112,6 +1113,9 @@ class TestsSystem(unittest.TestCase):
 
         self.module._set_config_field.assert_called_with('enableactivityled', False)
         mock_console.return_value.command.assert_called_with(session.PatternArg('.*echo 0.*'))
+        # check echo mmc0 not called using number of time mock was called (but do not check args list)
+        logging.debug('Mock calls args list: %s', mock_console.return_value.command.call_args_list)
+        self.assertEqual(mock_console.return_value.command.call_count, 3)
 
     @patch('backend.system.Console')
     def test_tweak_activity_led_failed(self, mock_console):

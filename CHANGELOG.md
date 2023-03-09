@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0] - 2023-03-09
+### Fixed
+- Led state is not properly restored after a reboot
+
+### Changed
+- Restore original activity led trigger mode to default mode (mmc0) when enabled again
+- Force option added to reboot and halt device functions
+
 ## [2.1.2] - 2022-01-25
 ### Fixed
 - Move system python dependencies from core
