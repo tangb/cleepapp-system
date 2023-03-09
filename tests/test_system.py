@@ -8,8 +8,10 @@ sys.path.append('../')
 from backend.system import System
 from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo, NoResponse
 from cleep.libs.tests import session
+from cleep.libs.tests.common import get_log_level
 from mock import Mock, patch, MagicMock
 
+LOG_LEVEL = get_log_level()
 
 class VirtualMemory():
     total = 512
@@ -44,7 +46,7 @@ class TestsSystem(unittest.TestCase):
 
     def setUp(self):
         self.session = session.TestSession(self)
-        logging.basicConfig(level=logging.FATAL, format=u'%(asctime)s %(name)s:%(lineno)d %(levelname)s : %(message)s')
+        logging.basicConfig(level=LOG_LEVEL, format=u'%(asctime)s %(name)s:%(lineno)d %(levelname)s : %(message)s')
 
     def tearDown(self):
         mock_psutil.reset_mock()
@@ -263,7 +265,7 @@ class TestsSystem(unittest.TestCase):
         self.module.reboot_device(delay=10.0)
         
         self.module.backup_cleep_config.assert_called()
-        mock_console.return_value.command_delayed.assert_called_with('reboot', 10.0)
+        mock_console.return_value.command_delayed.assert_called_with('reboot -f', 10.0)
         self.assertTrue(self.session.event_called('system.device.reboot'))
 
     @patch('backend.system.Console')
@@ -274,7 +276,7 @@ class TestsSystem(unittest.TestCase):
         self.module.poweroff_device(delay=10.0)
         
         self.module.backup_cleep_config.assert_called()
-        mock_console.return_value.command_delayed.assert_called_with('poweroff', 10.0)
+        mock_console.return_value.command_delayed.assert_called_with('poweroff -f', 10.0)
         self.assertTrue(self.session.event_called('system.device.poweroff'))
 
     @patch('backend.system.Console')
@@ -389,8 +391,7 @@ class TestsSystem(unittest.TestCase):
         logging.debug('Logs: %s' % logs)
 
         self.assertEqual(logs['filename'], 'cleep_20101010_101010.zip')
-        mock_zipfile.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
-        mock_zipfile.return_value.close.assert_called()
+        mock_zipfile.return_value.__enter__.return_value.write.assert_called_with(session.AnyArg(), 'cleep.log')
 
     def test_download_logs_exception(self):
         self.init_session()
