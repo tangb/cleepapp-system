@@ -33,9 +33,9 @@ class System(CleepModule):
     MODULE_LONGDESCRIPTION = 'Application that helps you to configure your system'
     MODULE_TAGS = ['troubleshoot', 'monitoring', 'log', 'rendering', 'driver', 'backup']
     MODULE_COUNTRY = None
-    MODULE_URLINFO = 'https://github.com/tangb/cleepmod-system'
+    MODULE_URLINFO = 'https://github.com/CleepDevice/cleepapp-system'
     MODULE_URLHELP = None
-    MODULE_URLBUGS = 'https://github.com/tangb/cleepmod-system/issues'
+    MODULE_URLBUGS = 'https://github.com/CleepDevice/cleepapp-system/issues'
     MODULE_URLSITE = None
 
     MODULE_CONFIG_FILE = 'system.conf'
