@@ -44,9 +44,8 @@ class SystemMonitoringCpuEvent(Event):
         """
         cleep = float(params["cleep"])
         system = float(params["system"])
-        others = float("{0:.2f}".format(system - cleep))
-        if others < 0.0:
-            others = 0.0
+        others = float(f"{system-cleep:.2f}")
+        others = max(others, 0.0)
         idle = 100.0 - cleep - others
 
         return [

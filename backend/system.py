@@ -82,12 +82,9 @@ class System(CleepModule):
         self.__monitor_memory_uuid = None
         self.__monitoring_cpu_task = None
         self.__monitoring_memory_task = None
-        self.__monitoring_disks_task = None
+        # self.__monitoring_disks_task = None
         self.__process = None
         self.__need_restart = False
-        self.__updating_modules = []
-        self.__modules = {}
-        self.__cleep_update = {"package": {"url": None}, "checksum": {"url": None}}
         self.cleep_update_pending = False
         self.cleep_backup = CleepBackup(self.cleep_filesystem, self.crash_report)
         self.cleep_backup_delay = None
@@ -125,12 +122,12 @@ class System(CleepModule):
         # store device uuids for events
         devices = self.get_module_devices()
         monitor_uuid = None
-        for device_uuid in devices:
-            if devices[device_uuid]["type"] == "monitorcpu":
+        for (device_uuid, device) in devices.items():
+            if device["type"] == "monitorcpu":
                 self.__monitor_cpu_uuid = device_uuid
-            elif devices[device_uuid]["type"] == "monitormemory":
+            elif device["type"] == "monitormemory":
                 self.__monitor_memory_uuid = device_uuid
-            elif devices[device_uuid]["type"] == "monitor":
+            elif device["type"] == "monitor":
                 monitor_uuid = device_uuid
 
         # create missing devices
@@ -216,9 +213,9 @@ class System(CleepModule):
         """
         devices = super().get_module_devices()
 
-        for device_uuid in devices:
-            if devices[device_uuid]["type"] == "monitor":
-                devices[device_uuid].update(
+        for device in devices.values():
+            if device["type"] == "monitor":
+                device.update(
                     {
                         "uptime": System.get_uptime(),
                         "cpu": self.get_cpu_usage(),
@@ -356,12 +353,8 @@ class System(CleepModule):
                 }
 
         """
-        system = psutil.cpu_percent()
-        if system > 100.0:
-            system = 100.0
-        cleep = self.__process.cpu_percent()
-        if cleep > 100.0:
-            cleep = 100.0
+        system = min(psutil.cpu_percent(), 100.0)
+        cleep = min(self.__process.cpu_percent(), 100.0)
         return {"system": system, "cleep": cleep}
 
     @staticmethod
@@ -559,22 +552,14 @@ class System(CleepModule):
             raise CommandError("Logs file doesn't exist")
 
         # log file exists, zip it
-        file_descriptor = NamedTemporaryFile(delete=False)
-        log_filename = file_descriptor.name
-        self.logger.debug("Zipped log filename: %s" % log_filename)
-        archive = ZipFile(file_descriptor, "w", ZIP_DEFLATED)
-        archive.write(self.log_file, "cleep.log")
-        archive.close()
+        with NamedTemporaryFile(delete=False) as file_descriptor:
+            log_filename = file_descriptor.name
+            self.logger.debug("Zipped log filename: %s", log_filename)
+            with ZipFile(file_descriptor, "w", ZIP_DEFLATED) as archive:
+                archive.write(self.log_file, "cleep.log")
 
         now = datetime.now()
-        filename = "cleep_%d%02d%02d_%02d%02d%02d.zip" % (
-            now.year,
-            now.month,
-            now.day,
-            now.hour,
-            now.minute,
-            now.second,
-        )
+        filename = f"cleep_{now.year}{now.month:02d}{now.day:02d}_{now.hour:02d}{now.minute:02d}{now.second:02d}.zip"
 
         return {"filepath": log_filename, "filename": filename}
 
@@ -689,7 +674,7 @@ class System(CleepModule):
             resp = self.send_command("set_debug", module_name, {"debug": debug})
         if resp.error:
             self.logger.error(
-                "Unable to set debug on module %s: %s" % (module_name, resp.message)
+                "Unable to set debug on module %s: %s", module_name, resp.message
             )
             raise CommandError("Update debug failed")
 
@@ -701,11 +686,7 @@ class System(CleepModule):
         for event_not_renderable in self.get_not_renderable_events():
             try:
                 self.logger.debug(
-                    'Disable event "%s" rendering for "%s"'
-                    % (
-                        event_not_renderable["event"],
-                        event_not_renderable["renderer"],
-                    )
+                    'Disable event "%s" rendering for "%s"', event_not_renderable["event"], event_not_renderable["renderer"],
                 )
                 event = self.events_broker.get_event_instance(
                     event_not_renderable["event"]
@@ -713,11 +694,7 @@ class System(CleepModule):
                 event.set_renderable(event_not_renderable["renderer"], False)
             except Exception:
                 # event does not exists anymore, delete it
-                key = "%s%s%s" % (
-                    event_not_renderable["renderer"],
-                    self.EVENT_SEPARATOR,
-                    event_not_renderable["event"],
-                )
+                key = f"{event_not_renderable['renderer']}{self.EVENT_SEPARATOR}{event_not_renderable['event']}"
                 if key not in events_to_delete:
                     events_to_delete.append(key)
 
@@ -749,7 +726,7 @@ class System(CleepModule):
 
         # update config
         events_not_renderable = self._get_config_field("eventsnotrenderable")
-        key = "%s%s%s" % (renderer_name, self.EVENT_SEPARATOR, event_name)
+        key = f"{renderer_name}{self.EVENT_SEPARATOR}{event_name}"
 
         if key in events_not_renderable and renderable:
             # enable event rendering
@@ -856,7 +833,7 @@ class System(CleepModule):
             "success": success,
             "message": message,
         }
-        self.logger.debug("Driver install terminated: %s" % data)
+        self.logger.debug("Driver install terminated: %s", data)
 
         # send event
         self.driver_install_event.send(data)
@@ -926,7 +903,7 @@ class System(CleepModule):
             "success": success,
             "message": message,
         }
-        self.logger.debug("Uninstall driver terminated: %s" % data)
+        self.logger.debug("Uninstall driver terminated: %s", data)
 
         # send event
         self.driver_uninstall_event.send(data)
@@ -986,14 +963,14 @@ class System(CleepModule):
         power_led_enabled = self._get_config_field("enablepowerled", False)
         try:
             self.tweak_power_led(power_led_enabled)
-        except Exception as error:
-            self.logger.error(error.message)
+        except Exception:
+            self.logger.exception("Error applying power led tweak")
 
         activity_led_enabled = self._get_config_field("enableactivityled", False)
         try:
             self.tweak_activity_led(activity_led_enabled)
-        except Exception as error:
-            self.logger.error(error.message)
+        except Exception:
+            self.logger.exception("Error applying activity led tweak")
 
     def tweak_power_led(self, enable):
         """
@@ -1013,7 +990,7 @@ class System(CleepModule):
         off_value = "0" if raspi["model"].lower().find("zero") else "1"
         on_value = "1" if raspi["model"].lower().find("zero") else "0"
         echo_value = on_value if enable else off_value
-        self.logger.debug(f"Tweaking power led with value {echo_value}")
+        self.logger.debug("Tweaking power led with value %s", echo_value)
         console = Console()
         resp = console.command(f"echo {echo_value} > /sys/class/leds/led1/brightness")
         if resp["returncode"] != 0:
@@ -1040,7 +1017,7 @@ class System(CleepModule):
         off_value = "0" if raspi["model"].lower().find("zero") else "1"
         on_value = "1" if raspi["model"].lower().find("zero") else "0"
         echo_value = on_value if enable else off_value
-        self.logger.debug(f"Tweaking activity led with value {echo_value}")
+        self.logger.debug("Tweaking activity led with value %s", echo_value)
         console = Console()
 
         # update led status
