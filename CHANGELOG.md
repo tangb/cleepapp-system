@@ -1,5 +1,9 @@
 # Changelog
 
+## [UNRELEASED]
+### Fixed
+- Fix documentation
+
 ## [2.2.0] - 2023-03-09
 ### Fixed
 - Led state is not properly restored after a reboot

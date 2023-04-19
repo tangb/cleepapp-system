@@ -774,7 +774,7 @@ class System(CleepModule):
             enable (bool): True to enable crash report
 
         Raises:
-            CommandError if error occured
+            CommandError: if error occured
         """
         self._check_parameters([{"name": "enable", "type": bool, "value": enable}])
 
