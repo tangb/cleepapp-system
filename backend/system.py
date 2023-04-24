@@ -273,6 +273,9 @@ class System(CleepModule):
     def reboot_device(self, delay=5.0):
         """
         Reboot device
+
+        Args:
+            delay (float, optional): delay before rebooting the device. Defaults to 5.0.
         """
         # backup configuration
         self.backup_cleep_config()
@@ -287,6 +290,9 @@ class System(CleepModule):
     def poweroff_device(self, delay=5.0):
         """
         Poweroff device
+
+        Args:
+            delay (float, optional): delay before powering off the device. Defaults to 5.0.
         """
         # backup configuration
         self.backup_cleep_config()
@@ -301,6 +307,9 @@ class System(CleepModule):
     def restart_cleep(self, delay=3.0):
         """
         Restart Cleep
+
+        Args:
+            delay (float, optional): delay before restarting the device. Defaults to 3.0.
         """
         # backup configuration
         self.backup_cleep_config()
@@ -568,7 +577,14 @@ class System(CleepModule):
         Return logs file content
 
         Returns:
-            list: list of lines from log file
+            list: list of lines from log file::
+
+                [
+                    line1 (str),
+                    line2 (str),
+                    ...
+                ]
+
         """
         lines = []
         if os.path.exists(self.log_file):
@@ -578,7 +594,7 @@ class System(CleepModule):
 
     def clear_logs(self):
         """
-        Clear logs
+        Clear logs file
 
         Returns:
             bool: True if operation succeed, False otherwise
@@ -714,7 +730,16 @@ class System(CleepModule):
             renderable (bool): True to allow event rendering for renderer, False otherwise
 
         Returns:
-            list: list of events not renderable
+            list: list of not renderable events::
+
+                [
+                    {
+                        event (string): event name,
+                        renderer (string): renderer name
+                    },
+                    ...
+                ]
+
         """
         self._check_parameters(
             [
@@ -851,7 +876,7 @@ class System(CleepModule):
         Args:
             driver_type (string): driver type
             driver_name (string): driver name
-            force (bool): force install (repair)
+            force (bool, optional): force install (repair). Defaults to False.
 
         Raises:
             MissingParameter: if a parameter is missing
