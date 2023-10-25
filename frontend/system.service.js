@@ -4,8 +4,8 @@
  */
 angular
 .module('Cleep')
-.service('systemService', ['$rootScope', 'rpcService', 'cleepService', 'toastService', 'appToolbarService',
-function($rootScope, rpcService, cleepService, toast, appToolbarService) {
+.service('systemService', ['$rootScope', 'rpcService', 'cleepService', 'toastService', 'cleepToolbarService',
+function($rootScope, rpcService, cleepService, toast, cleepToolbarService) {
     var self = this;
     self.restartButtonId = null;
     self.rebootButtonId = null;
@@ -158,18 +158,18 @@ function($rootScope, rpcService, cleepService, toast, appToolbarService) {
             if( newConfig && newConfig.config ) {
                 // handle restart button
                 if( !newConfig.config.needrestart && self.restartButtonId ) {
-                    appToolbarService.removeButton(self.restartButtonId);
+                    cleepToolbarService.removeButton(self.restartButtonId);
                     self.restartButtonId = null;
                 } else if( newConfig.config.needrestart && !self.restartButtonId ) {
-                    self.restartButtonId = appToolbarService.addButton('Restart to apply changes', 'restart', cleepService.restart, 'md-accent');
+                    self.restartButtonId = cleepToolbarService.addButton('Restart to apply changes', 'restart', cleepService.restart, 'md-accent');
                 }
 
                 // handle reboot button
                 if( !newConfig.config.needreboot && self.rebootButtonId ) {
-                    appToolbarService.removeButton(self.rebootButtonId);
+                    cleepToolbarService.removeButton(self.rebootButtonId);
                     self.rebootButtonId = null;
                 } else if( newConfig.config.needreboot && !self.rebootButtonId ) {
-                    self.rebootButtonId = appToolbarService.addButton('Reboot to apply changes', 'restart', cleepService.reboot, 'md-accent');
+                    self.rebootButtonId = cleepToolbarService.addButton('Reboot to apply changes', 'restart', cleepService.reboot, 'md-accent');
                 }
 
                 // store monitoring flag to display or not monitor widget
