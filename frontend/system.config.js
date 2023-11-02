@@ -12,20 +12,24 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self.systemService = systemService;
         self.tabIndex = 'drivers';
         self.needRestart = false;
-        self.debugs = {};
+        self.debugOptions = [];
+        self.debugs = [];
         self.renderings = [];
-
-        self.codemirrorInstance = null;
-        self.codemirrorOptions = {
+        self.backupDelays = [
+            { value: 5, label: "every 5 minutes" },
+            { value: 10, label: "every 10 minutes" },
+            { value: 15, label: "every 15 minutes" },
+            { value: 30, label: "every 30 minutes" },
+            { value: 60, label: "every 60 minutes" },
+        ];
+        self.codeButtons = [];
+        self.logs = '';
+        self.editorConfig = {
             lineWrapping: true,
             lineNumbers: true,
             tabSize: 2,
             readOnly: true,
             mode: "cleeplog",
-            onLoad: function(cmInstance) {
-                self.codemirrorInstance = cmInstance;
-                cmInstance.focus();
-            }
         };
 
         /**************
@@ -68,15 +72,9 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         /**
          * Save monitoring
          */
-        self.updateMonitoring = function(fromCheckbox) {
-            if( !fromCheckbox ) {
-                // row clicked, we need to update flag
-                self.config.monitoring = !self.config.monitoring;
-            }
-
-            // delay update to make sure model value is updated
-            systemService.setMonitoring(self.config.monitoring)
-                .then(function(resp) {
+        self.updateMonitoring = function(value) {
+            systemService.setMonitoring(value)
+                .then(() => {
                     cleepService.reloadModuleConfig('system');
                     toast.success('Monitoring updated');
                 });
@@ -85,49 +83,33 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         /**
          * Save tweak LED
          */
-        self.updateTweakLed = function(led, fromCheckbox) {
-            if( !fromCheckbox ) {
-                // row clicked, we need to update flag
-                if (led === 'activity') {
-                    self.config.enableactivityled = !self.config.enableactivityled;
-                } else {
-                    self.config.enablepowerled = !self.config.enablepowerled;
-                }
+        self.updateTweakLed = function(value, meta) {
+            if (meta === 'activity') {
+                systemService.tweakActivityLed(value)
+                    .then(() => {
+                        cleepService.reloadModuleConfig('system');
+                        toast.success('Activity LED tweaked');
+                    });
+            } else if (meta === 'power') {
+                systemService.tweakPowerLed(value)
+                    .then(() => {
+                        cleepService.reloadModuleConfig('system');
+                        toast.success('Power LED tweaked');
+                    });
             }
-
-            // delay update to make sure model value is updated
-            callback = led === 'activity' ? systemService.tweakActivityLed : systemService.tweakPowerLed;
-            value = led === 'activity' ? self.config.enableactivityled : self.config.enablepowerled;
-            callback(value)
-                .then(function(resp) {
-                    cleepService.reloadModuleConfig('system');
-                    toast.success('LED tweaked');
-                });
         };
 
         /**
          * Save crash report
          */
-        self.updateCrashReport = function(fromCheckbox) {
-            if( !fromCheckbox ) {
-                // row clicked, we need to update flag
-                self.config.crashreport = !self.config.crashreport;
-            }
+        self.updateCrashReport = function(value) {
+            systemService.setCrashReport(value)
+                .then(() => {
+                    cleepService.reloadModuleConfig('system');
 
-            //delay update to make sure model value is updated
-            $timeout(function() {
-                systemService.setCrashReport(self.config.crashreport)
-                    .then(function(resp) {
-                        cleepService.reloadModuleConfig('system');
-
-                        // user message
-                        if( self.config.crashreport ) {
-                            toast.success('Crash report enabled');
-                        } else {
-                            toast.success('Crash report disabled');
-                        }
-                    });
-            }, 250);
+                    const msg = self.config.crashreport ? 'Crash report enabled' : 'Crash report disabled';
+                    toast.success(msg);
+                });
         };
 
 
@@ -178,8 +160,9 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         /**
          * Update renderings
          */
-        self.updateRendering = function(rendering) {
-            systemService.setEventRenderable(rendering.renderer, rendering.event, !rendering.disabled);
+        self.updateRendering = function(value, current) {
+            console.log(value, current);
+            systemService.setEventRenderable(current.renderer, current.event, !value);
         };
 
         /**
@@ -189,7 +172,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
          * @return: true if event is not rendered, false otherwise
          */
         self._isEventNotRenderable = function(renderer, event) {
-            for (var i=0; i<self.config.eventsnotrenderable.length; i++) {
+            for (let i=0; i<self.config.eventsnotrenderable.length; i++) {
                 if (self.config.eventsnotrenderable[i].renderer === renderer && self.config.eventsnotrenderable[i].event === event) {
                     return true;
                 }
@@ -201,16 +184,17 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         /**
          * Search event handled by specified profile
          */
-        self._searchProfileEvent = function(profile, events) {
-            for (var eventName in events) {
-                for (var profileName in events[eventName].profiles) {
+        self._searchProfileEvents = function(profile, events) {
+            const matches = [];
+            for (const [eventName, event] of Object.entries(events)) {
+                for (const profileName of event.profiles) {
                     if (profileName === profile) {
-                        return eventName;
+                        matches.push(eventName);
                     }
                 }
             }
 
-            return null;
+            return matches;
         }
 
         /**
@@ -221,19 +205,19 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         self._initRenderings = function(events, renderers) {
             // prepare renderings list
             // for each renderer search handled events via profile matching
-            for(var renderer in renderers) {
-                for(var profile in renderers[renderer]) {
-                    var eventName = self._searchProfileEvent(profile, events);
-                    if(!eventName) {
-                        console.warn('Profile "'+profile+'" has no event!');
-                        continue;
-                    }
+            for (const [rendererName, profiles] of Object.entries(renderers)) {
+                for(const profile of profiles) {
+                    const eventNames = self._searchProfileEvents(profile, events);
 
-                    self.renderings.push({
-                        'renderer': renderer,
-                        'event': eventName,
-                        'disabled': self._isEventNotRenderable(renderer, eventName),
-                    });
+                    for (const eventName of eventNames) {
+                        const title = 'Disable "' + eventName + '" event handled by "' + rendererName + '" application';
+                        self.renderings.push({
+                            title,
+                            selected: self._isEventNotRenderable(rendererName, eventName),
+                            renderer: rendererName,
+                            event: eventName,
+                        });
+                    }
                 }
             }
         };
@@ -256,44 +240,45 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
             systemService.getLogs()
                 .then(function(resp) {
                     self.logs = resp.data.join('');
-                    self.refreshEditor();
+                    // self.refreshEditor();
                 });
-        };
-
-        /**
-         * Refresh editor
-         */
-        self.refreshEditor = function() {
-            self.codemirrorInstance.refresh();
         };
 
         /**
          * Module debug changed
          */
-        self.moduleDebugChanged = function(module) {
-            systemService.setModuleDebug(module, self.debugs[module].debug);
+        self.moduleDebugChanged = function(appDebugs) {
+            const requests = [];
+            for (const option of self.debugOptions) {
+                const app = option.value;
+                if (option.debug && !appDebugs.includes(app)) {
+                    // app debug disabled
+                    requests.push(systemService.setModuleDebug(app, false));
+                }
+
+                if (!option.debug && appDebugs.includes(app)) {
+                    // app debug enabled
+                    requests.push(systemService.setModuleDebug(app, true));
+                }
+            }
+            Promise.allSettled(requests);
         };
 
         /**
          * Core debug changed
          */
-        self.coreDebugChanged = function() {
-            $timeout(function() {
-                systemService.setCoreDebug(self.config.debug.core);
-            }, 250);
+        self.coreDebugChanged = function(value) {
+            systemService.setCoreDebug(value);
         };
 
         /**
          * Trace changed
          */
-        self.traceChanged = function() {
-            systemService.setTrace(self.config.debug.trace)
+        self.traceChanged = function(value) {
+            systemService.setTrace(value)
                 .then(function() {
-                    var message = 'Trace enabled';
-                    if( !self.config.debug.trace )
-                        message = 'Trace disabled';
-                        
-                    toast.success('' + message +'. Please restart application');
+                    const msg = value ? 'Trace enabled' : 'Trace disabled';
+                    toast.success('' + msg +'. Please restart application');
                 });
         };
 
@@ -310,8 +295,26 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
             $q.all([cleepService.getEvents(), cleepService.getRenderers(), cleepService.getModulesDebug()])
                 .then(function(resps) {
                     self._initRenderings(resps[0], resps[1]);
-                    self.debugs = resps[2].data;
+
+                    const apps = Object.keys(resps[2].data).sort();
+                    for (const app of apps) {
+                        const debug = resps[2].data[app].debug;
+
+                        self.debugOptions.push({
+                            label: app,
+                            value: app,
+                            debug,
+                        });
+                        if (debug) {
+                            self.debugs.push(app);
+                        }
+                    }
                 });
+
+            self.codeButtons = [
+                { label: 'Refresh logs', icon: 'refresh', click: self.getLogs },
+                { label: 'Download logs', icon: 'download', click: self.downloadLogs },
+            ];
         };
 
         /** 
@@ -335,7 +338,7 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
         replace: true,
         scope: true,
         controller: systemController,
-        controllerAs: 'systemCtl',
+        controllerAs: '$ctrl',
     };
 }]);
 

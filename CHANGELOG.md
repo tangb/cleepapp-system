@@ -4,6 +4,12 @@
 ### Fixed
 - Fix documentation
 
+### Changed
+- Move monitoring widget to desc.json file
+- Migrate drivers directive to config-drivers component
+- Add new config-code component
+- Update config to new Cleep components
+
 ## [2.2.0] - 2023-03-09
 ### Fixed
 - Led state is not properly restored after a reboot

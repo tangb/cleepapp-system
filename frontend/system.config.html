@@ -1,7 +1,7 @@
 <div layout="column" ng-cloak class="module-padding">
 
     <!-- navigation tabs -->
-    <md-nav-bar md-selected-nav-item="systemCtl.tabIndex" nav-bar-aria-label="System tabs">
+    <md-nav-bar md-selected-nav-item="$ctrl.tabIndex" nav-bar-aria-label="System tabs">
         <md-nav-item md-nav-click="goto('drivers')" name="drivers">Drivers</md-nav-item>
         <md-nav-item md-nav-click="goto('backup')" name="backup">Backup</md-nav-item>
         <md-nav-item md-nav-click="goto('renderings')" name="renderings">Renderings</md-nav-item>
@@ -10,220 +10,106 @@
     </md-nav-bar>
 
     <!-- backup -->
-    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='backup'">
-        
-        <md-list ng-cloak>
+    <div layout="column" layout-padding ng-if="$ctrl.tabIndex=='backup'">
+        <config-note
+            cl-type="info" cl-icon="information"
+            cl-note="<u>Filesystem protection</u><p>SD-card is the weakness of Raspberry pi. To palliate this problem this application can run on protected filesystem. Protected filesystem means the system is on read-only and cannot be corrupted (because it can't be modified).<br/> However this application, to work correctly and allow system configuration, can toggle this read-only mode to writable one.<br/><br/> Also application configuration is saved on volatile part of filesystem that is lost after each device reboot.To keep configuration changes, application makes regular savings on filesystem.</p>"
+        ></config-note>
 
-            <!-- readonly -->
-            <md-subheader class="md-no-sticky">Filesystem protection</md-subheader>
-            <md-list-item>
-                <p>
-                    SD-card is the weakness of Raspberry pi. To palliate this problem this application can run on protected filesystem.
-                    Protected filesystem means the system is on read-only and cannot be corrupted (because it can't be modified).<br/>
-                    However this application, to work correctly and allow system configuration, can toggle this read-only mode to writable one.<br/><br/>
-                    Also application configuration is saved on volatile part of filesystem that is lost after each device reboot.
-                    To keep configuration changes, application makes regular savings on filesystem.<br/><br/>
-                </p>
-            </md-list-item>
-            <!--<md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Protection status</p>
-                <md-checkbox class="md-secondary"></md-checkbox>
-            </md-list-item>-->
-            <!--<md-list-item class="md-2-line">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <div class="md-list-item-text">
-                    <h3>Disable/enable protection</h3>
-                    <p>Please notice that if disabled your device may not restart after an unexpected shutdown.</p>
-                </div>
-                <md-checkbox class="md-secondary"></md-checkbox>
-            </md-list-item>-->
-
-            <!-- backup -->
-            <md-subheader class="md-no-sticky">Configuration backup</md-subheader>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Make configuration backup now</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.backupConfiguration()">
-                    <md-icon md-svg-icon="download-box"></md-icon>
-                    Backup config
-                </md-button>
-            </md-list-item>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Configure backup configuration delay</p>
-                <div class="md-secondary">
-                    <md-select ng-model="systemCtl.config.cleepbackupdelay" placeholder="Backup delay" class="md-no-underline">
-                        <md-option value="5">5 minutes</md-option>
-                        <md-option value="10">10 minutes</md-option>
-                        <md-option value="15">15 minutes</md-option>
-                        <md-option value="30">30 minutes</md-option>
-                        <md-option value="60">60 minutes</md-option>
-                    </md-select>
-                </div>
-                <div class="md-secondary">
-                    <md-button class="md-raised md-primary" ng-click="systemCtl.setBackupDelay()">
-                        <md-icon md-svg-icon="pencil"></md-icon>
-                        Set delay
-                    </md-button>
-                </div>
-            </md-list-item>
-
-        </md-list>
-
+        <config-section cl-title="Backup configuration" cl-icon="lifebuoy"></config-section>
+        <config-button
+            cl-title="Trigger backup now" cl-click="$ctrl.backupConfiguration()"
+            cl-btn-label="Backup" cl-btn-icon="download-box"
+        ></config-button>
+        <config-select
+            cl-title="Configure backup delay" cl-options="$ctrl.backupDelays"
+            cl-model="$ctrl.config.cleepbackupdelay"
+            cl-click="$ctrl.setBackupDelay()"
+        ></config-select>
     </div>
 
     <!-- renderings -->
-    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='renderings'">
-        <md-list ng-cloak>
-
-            <md-list-item>
-                <span>
-                    Some installed applications have capability to render several events:
-                    <ul>
-                        <li>messageboard app is able to render time events to display current time on the physical board,</li>
-                        <li>smtp module is able to render alert event to send an email,</li>
-                        <li>...</li>
-                    </ul>
-                </span>
-            </md-list-item>
-            <md-list-item>
-                <p>Options below give you a way to disable those events automatically rendered by installed applications:</p>
-            </md-list-item>
-            <md-list-item ng-repeat="rendering in systemCtl.renderings">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Disable event <b>{{rendering.event}}</b> rendered by <b>{{rendering.renderer}}</b></p>
-                <md-checkbox class="md-secondary" ng-change="systemCtl.updateRendering(rendering)" ng-model="rendering.disabled" aria-label="Rendering"></md-checkbox>
-            </md-list-item>
-            <md-list-item ng-if="systemCtl.renderings.length===0">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>No installed application is able to render event</p>
-            </md-list-item>
-
-        </md-list>
+    <div layout="column" layout-padding ng-if="$ctrl.tabIndex=='renderings'">
+        <config-note
+            cl-type="info" cl-icon="information"
+            cl-note="<u>Info about rendering</u>Some installed applications have capability to automatically handle several events:<ul><li>messageboard app is able to display time events to display current time on the physical board,</li><li>smtp module is able to render alert event to send an email,</li><li>alarmclock is able to trigger an alarm at specific time</li><li>etc...</li></li></ul>Options below give you a way to disable those events automatically triggered by installed applications."
+        ></config-note>
+        <config-list
+            cl-empty="No installed application is able to render event"
+            cl-items="$ctrl.renderings" cl-selectable="true"
+            cl-on-select="$ctrl.updateRendering(value, current)"
+        ></config-list>
     </div>
 
     <!-- drivers -->
-    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='drivers'">
-        <drivers></drivers>
+    <div layout="column" layout-padding ng-if="$ctrl.tabIndex=='drivers'">
+        <config-drivers cl-title=""></config-drivers>
     </div>
 
     <!-- advanced -->
-    <div layout="column" layout-padding ng-if="systemCtl.tabIndex=='advanced'">
-        <md-list ng-cloak>
+    <div layout="column" layout-padding ng-if="$ctrl.tabIndex=='advanced'">
+        <config-section cl-title="Actions" cl-icon="cog"></config-section>
+        <config-button
+            cl-title="Restart Cleep" cl-click="$ctrl.restart()"
+            cl-btn-label="Restart" cl-btn-icon="restart"
+        ></config-button>
+        <config-button
+            cl-title="Reboot device" cl-click="$ctrl.reboot()"
+            cl-btn-label="Reboot" cl-btn-icon="restart" cl-btn-class="md-accent"
+        ></config-button>
+        <config-button
+            cl-title="Power off device" cl-click="$ctrl.poweroff()"
+            cl-btn-label="Power off" cl-btn-icon="stop" cl-btn-color="md-accent"
+        ></config-button>
 
-            <!-- system action -->
-            <md-subheader class="md-no-sticky">Actions</md-subheader>
-            <md-list-item ng-click="systemCtl.restart()">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Restart application</p>
-                <md-button class="md-secondary md-raised md-primary" ng-click="systemCtl.restart()">
-                    <md-icon md-svg-icon="restart"></md-icon>
-                    Restart
-                </md-button>
-            </md-list-item>
-            <md-list-item ng-click="systemCtl.reboot()">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Reboot device</p>
-                <md-button class="md-secondary md-raised md-warn" ng-click="systemCtl.reboot()">
-                    <md-icon md-svg-icon="restart"></md-icon>
-                    Reboot
-                </md-button>
-            </md-list-item>
-            <md-list-item ng-click="systemCtl.poweroff()">
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Poweroff device</p>
-                <md-button class="md-secondary md-raised md-warn" ng-click="systemCtl.poweroff()">
-                    <md-icon md-svg-icon="stop"></md-icon>
-                   Poweroff 
-                </md-button>
-            </md-list-item>
+        <config-section cl-title="Tweaks" cl-icon="tune"></config-section>
+        <config-switch
+            cl-title="Enable board activity LED" cl-model="$ctrl.config.enableactivityled"
+            cl-meta="'activity'"
+            cl-click="$ctrl.updateTweakLed(value, meta)"
+        ></config-switch>
+        <config-switch
+            cl-title="Enable board power LED" cl-model="$ctrl.config.enablepowerled"
+            cl-meta="'power'"
+            cl-click="$ctrl.updateTweakLed(value, meta)"
+        ></config-switch>
 
-            <!-- tweaks -->
-            <md-subheader class="md-no-sticky">Tweaks</md-subheader>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Enable board activity LED</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.config.enableactivityled" ng-change="systemCtl.updateTweakLed('activity', true)" aria-label="Activity LED"></md-checkbox>
-            </md-list-item>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Enable board power LED</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.config.enablepowerled" ng-change="systemCtl.updateTweakLed('power', true)" aria-label="Power LED"></md-checkbox>
-            </md-list-item>
+        <config-section cl-title="Monitoring" cl-icon="monitor-eye"></config-section>
+        <config-switch
+            cl-title="Enable monitoring allows you to follow cpu and memory consumption of device"
+            cl-model="$ctrl.config.monitoring"
+            cl-click="$ctrl.updateMonitoring(value)"
+        ></config-switch>
 
-            <!-- monitoring -->
-            <md-subheader class="md-no-sticky">Monitoring</md-subheader>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>Enable monitoring allows you to follow cpu and memory consumption of device</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.config.monitoring" ng-change="systemCtl.updateMonitoring(true)" aria-label="Monitoring option"></md-checkbox>
-            </md-list-item>
-
-            <!-- crash report -->
-            <md-subheader class="md-no-sticky">Crash report</md-subheader>
-            <md-list-item>
-                <md-icon md-svg-icon="chevron-right"></md-icon>
-                <p>If you enable crash report, it will help us to improve application reliability</p>
-                <md-checkbox class="md-secondary" ng-model="systemCtl.config.crashreport" aria-label="Crash report" ng-change="systemCtl.updateCrashReport(true)"></md-checkbox>
-            </md-list-item>
-
-        </md-list>
+        <config-section cl-title="Crash report" cl-icon="bug"></config-section>
+        <config-switch
+            cl-title="Enabling crash report allows Cleep team to improve application reliability"
+            cl-model="$ctrl.config.crashreport"
+            cl-click="$ctrl.updateCrashReport(value)"
+        ></config-switch>
     </div>
 
     <!-- troubleshoot -->
-    <div layout="row" layout-padding ng-if="systemCtl.tabIndex=='troubleshoot'">
-        
-        <!-- viewer -->
-        <div layout="column" layout-padding flex="75" layout-sm="column" flex-sm="100">
-            <md-content layout-fill>
-                <md-toolbar class="md-hue-3">
-                    <div class="md-toolbar-tools">
-                        <h2 flex md-truncate>Log viewer</h2>
-                        <md-button class="md-primary md-raised" ng-click="systemCtl.getLogs()" aria-label="Refresh logs">
-                            <md-icon class="toolbar-white-icon" md-svg-icon="refresh"></md-icon>
-                            Refresh logs
-                        </md-button>
-                        <md-button class="md-primary md-raised" ng-click="systemCtl.downloadLogs()" aria-label="Download logs">
-                            <md-icon class="toolbar-white-icon" md-svg-icon="download"></md-icon>
-                            Download logs
-                        </md-button>
-                    </div>
-                </md-toolbar>
-                <div ui-codemirror ui-codemirror-opts="systemCtl.codemirrorOptions" ng-model="systemCtl.logs" class="codemirror-code">
-                </div>
-            </md-content>
-        </div>
-
-        <!-- debug/trace config -->
-        <div layout="column" layout-padding flex="25">
-            <div class="md-title">
-                Modules to debug
-            </div>
-            <div>
-                <div ng-repeat="(module, debug) in systemCtl.debugs | orderObjByKey">
-                    <md-checkbox ng-model="debug.debug" aria-label="Debug enabled" ng-change="systemCtl.moduleDebugChanged(module)">
-                        {{module}}
-                    </md-checkbox>
-                </div>
-            </div>
-            <div class="md-title">
-                Advanced debug
-            </div>
-            <div>
-                <div>
-                    <md-checkbox ng-model="systemCtl.config.debug.core" aria-label="Debug system" ng-change="systemCtl.coreDebugChanged()">
-                        Debug core
-                    </md-checkbox>
-                </div>
-                <div>
-                    <md-checkbox ng-model="systemCtl.config.debug.trace" aria-label="Enable trace" ng-change="systemCtl.traceChanged()">
-                        Enable full log (trace)
-                    </md-checkbox>
-                </div>
-            </div>
-        </div>
-
+    <div layout="column" layout-padding ng-if="$ctrl.tabIndex=='troubleshoot'">
+        <config-select
+            cl-title="Select applications to enable debug on" cl-no-select-all="true"
+            cl-options="$ctrl.debugOptions" cl-model="$ctrl.debugs"
+            cl-click="$ctrl.moduleDebugChanged(value)"
+        ></config-select>
+        <config-switch
+            cl-title="Debug Cleep core"
+            cl-model="$ctrl.config.debug.core"
+            cl-click="$ctrl.coreDebugChanged(value)"
+        ></config-switch>
+        <config-switch
+            cl-title="Enable full log (trace)"
+            cl-model="$ctrl.config.debug.trace"
+            cl-click="$ctrl.traceChanged(value)"
+        ></config-switch>
+        <config-code
+            cl-title="Log viewer" cl-config="$ctrl.editorConfig"
+            cl-buttons="$ctrl.codeButtons" cl-model="$ctrl.logs"
+        ></config-code>
     </div>
 
 </div>

@@ -1,12 +1,29 @@
 {
     "icon": "heart-pulse",
     "global": {
-        "js": ["monitor.widget.js", "system.service.js", "drivers/drivers.js"],
-        "html": ["monitor.widget.html", "monitor-dialog.widget.html", "drivers/drivers.html"]
+        "js": ["system.service.js", "config-drivers.component.js", "config-code.component.js"],
+        "html": []
     },
     "config": {
         "js": ["system.config.js", "codemirror/codemirror-cleeplog.js"],
         "html": ["system.config.html", "update.dialog.html"],
         "css": ["codemirror/codemirror-cleeplog.css", "system.config.css"]
+    },
+    "widgets": {
+        "monitor": {
+            "content": "<span class=\"md-display-1\">{{ device.uptime.uptimehr }}</span>",
+            "footer": [
+                {
+                    "icon": "gauge",
+                    "tooltip": "CPU usage",
+                    "label": "{{ device.cpu.system }}%"
+                },
+                {
+                    "icon": "memory",
+                    "tooltip": "Memory available",
+                    "label": "{{ device.memory.availablehr }}"
+                }
+            ]
+        }
     }
 }
