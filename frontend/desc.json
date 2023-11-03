@@ -1,13 +1,12 @@
 {
     "icon": "heart-pulse",
     "global": {
-        "js": ["system.service.js", "config-drivers.component.js", "config-code.component.js"],
-        "html": []
+        "js": ["system.service.js", "config-drivers.component.js", "config-code.component.js", "codemirror/codemirror-cleeplog.js"],
+        "css": ["config-code.component.css", "codemirror/codemirror-cleeplog.css"]
     },
     "config": {
-        "js": ["system.config.js", "codemirror/codemirror-cleeplog.js"],
-        "html": ["system.config.html", "update.dialog.html"],
-        "css": ["codemirror/codemirror-cleeplog.css", "system.config.css"]
+        "js": ["system.config.js"],
+        "html": ["system.config.html"]
     },
     "widgets": {
         "monitor": {

@@ -4,7 +4,7 @@
  */
 angular
 .module('Cleep')
-.directive('monitorWidget', ['cleepService', '$mdDialog', 'systemService', '$q',
+.directive('monitorcpuWidget', ['cleepService', '$mdDialog', 'systemService', '$q',
 function(cleepService, $mdDialog, systemService, $q) {
 
     var widgetMonitorController = ['$scope', function($scope) {
@@ -141,17 +141,11 @@ function(cleepService, $mdDialog, systemService, $q) {
         /**
          * Init controller
          */
-        self.init = function()
-        {
-            //get cpu and memory devices
-            for( var i=0; i<cleepService.devices.length; i++ )
-            {
-                if( cleepService.devices[i].type==='monitorcpu' )
-                {
+        self.init = function() {
+            for (var i=0; i<cleepService.devices.length; i++) {
+                if (cleepService.devices[i].type === 'monitorcpu') {
                     self.monitorCpu = cleepService.devices[i];
-                }
-                else if( cleepService.devices[i].type==='monitormemory' )
-                {
+                } else if (cleepService.devices[i].type === 'monitormemory') {
                     self.monitorMemory = cleepService.devices[i];
                 }
             }
