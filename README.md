@@ -1,5 +1,7 @@
 # cleepmod-system [![Coverage Status](https://coveralls.io/repos/github/tangb/cleepapp-system/badge.svg?branch=master)](https://coveralls.io/github/tangb/cleepapp-system?branch=master)
 
+![system](https://github.com/CleepDevice/cleepapp-system/raw/master/resources/system.jpg)
+
 System application for Cleep.
 
 This application groups some useful features to manage your device.
