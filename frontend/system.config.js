@@ -161,7 +161,6 @@ function($rootScope, $timeout, $q, toast, systemService, cleepService, confirm, 
          * Update renderings
          */
         self.updateRendering = function(value, current) {
-            console.log(value, current);
             systemService.setEventRenderable(current.renderer, current.event, !value);
         };
 

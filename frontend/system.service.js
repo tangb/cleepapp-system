@@ -151,10 +151,8 @@ function($rootScope, rpcService, cleepService, toast, cleepToolbarService) {
      * Watch for system config changes to add restart/reboot buttons if restart/reboot is needed
      */
     $rootScope.$watchCollection(
-        function() {
-            return cleepService.modules['system'];
-        },
-        function(newConfig) {
+        () => cleepService.modules['system'],
+        (newConfig) => {
             if( newConfig && newConfig.config ) {
                 // handle restart button
                 if( !newConfig.config.needrestart && self.restartButtonId ) {
@@ -175,7 +173,7 @@ function($rootScope, rpcService, cleepService, toast, cleepToolbarService) {
                 // store monitoring flag to display or not monitor widget
                 self.monitoring = newConfig.config.monitoring;
             }
-        }
+        },
     );
 
     /**
