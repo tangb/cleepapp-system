@@ -45,10 +45,10 @@ angular.module('Cleep').component('configDrivers', {
                 });
             }
 
-            ctrl.drivers.splice(0, ctrl.drivers.length);
+            const driversList = [];
             for (const driver of drivers) {
                 const loadingStatus = ctrl.getLoadingStatus(driver.processing);
-                ctrl.drivers.push({
+                driversList.push({
                     title: driver.drivername,
                     subtitle: loadingStatus,
                     icon: ctrl.getDriverIcon(driver.drivertype),
@@ -78,6 +78,7 @@ angular.module('Cleep').component('configDrivers', {
                     ],
                 });
             }
+            ctrl.drivers = driversList;
         };
 
         ctrl.getLoadingStatus = function (driverProcessing) {
