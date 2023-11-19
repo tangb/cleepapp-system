@@ -213,15 +213,29 @@ class System(CleepModule):
         """
         devices = super().get_module_devices()
 
-        for device in devices.values():
-            if device["type"] == "monitor":
-                device.update(
-                    {
-                        "uptime": System.get_uptime(),
-                        "cpu": self.get_cpu_usage(),
-                        "memory": self.get_memory_usage(),
-                    }
-                )
+        monitor_device = next((dev for dev in devices.values() if dev["type"] == "monitor"), None)
+        if monitor_device:
+            monitor_device.update({
+                "uptime": System.get_uptime(),
+                "cpu": self.get_cpu_usage(),
+                "memory": self.get_memory_usage(),
+            })
+
+        cpu_data = {
+            "cpu": self.get_cpu_usage()["system"],
+            "hidden": not bool(self.__monitoring_cpu_task),
+        }
+        cpu_device = next((dev for dev in devices.values() if dev["type"] == "monitorcpu"), None)
+        if cpu_device:
+            cpu_device.update(cpu_data)
+
+        mem_data = {
+            "memory": self.get_memory_usage()["available"],
+            "hidden": bool(self.__monitoring_memory_task),
+        }
+        mem_device = next((dev for dev in devices.values() if dev["type"] == "monitormemory"), None)
+        if mem_device:
+            mem_device.update(mem_data)
 
         return devices
 
