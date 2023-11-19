@@ -23,6 +23,43 @@
                     "label": "{{ device.memory.availablehr }}"
                 }
             ]
+        },
+        "monitorcpu": {
+            "content": "<span class=\"md-display-1\">{{ device.cpu || 0 }}%</span>",
+            "footer": [
+                {
+                    "type": "chart",
+                    "options": {
+                        "type" : "line",
+                        "label": "%",
+                        "height": 200,
+                        "format": {
+                            "func": "round"
+                        },
+                        "title": "CPU usage",
+                        "controls": false
+                    }
+                }
+            ]
+        },
+        "monitormemory": {
+            "content": "<span class=\"md-display-1\">{{ device.memory || 0 }}%</span>",
+            "footer": [
+                {
+                    "type": "chart",
+                    "options": {
+                        "type" : "line",
+                        "label": "Mo",
+                        "height": 200,
+                        "format": {
+                            "func": "round",
+                            "eval": "value / (1024*1024)"
+                        },
+                        "title": "Memory usage",
+                        "controls": false
+                    }
+                }
+            ]
         }
     }
 }
