@@ -22,7 +22,10 @@ function($rootScope, rpcService, cleepService, toast, cleepToolbarService) {
      * Set monitoring
      */
     self.setMonitoring = function(monitoring) {
-        return rpcService.sendCommand('set_monitoring', 'system', {'monitoring': monitoring});
+        return rpcService.sendCommand('set_monitoring', 'system', {'monitoring': monitoring})
+            .then(() => {
+                cleepService.reloadDevices();
+            });
     };
 
     /**

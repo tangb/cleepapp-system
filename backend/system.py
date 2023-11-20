@@ -154,7 +154,6 @@ class System(CleepModule):
         """
         Application started
         """
-        # launch monitoring thread
         self.__start_monitoring_tasks()
 
     def _on_stop(self):
@@ -274,6 +273,11 @@ class System(CleepModule):
 
         if not self._set_config_field("monitoring", monitoring):
             raise CommandError("Unable to save configuration")
+
+        if self._get_config_field("monitoring"):
+            self.__start_monitoring_tasks()
+        else:
+            self.__stop_monitoring_tasks()
 
     def get_monitoring(self):
         """
@@ -401,6 +405,10 @@ class System(CleepModule):
         """
         Start monitoring threads
         """
+        self.logger.info("Starting monitoring")
+        if not self._get_config_field("monitoring"):
+            return
+
         self.__monitoring_cpu_task = Task(
             self.MONITORING_CPU_DELAY, self._monitoring_cpu_task, self.logger
         )
@@ -416,10 +424,13 @@ class System(CleepModule):
         """
         Stop monitoring threads
         """
+        self.logger.info("Stopping monitoring")
         if self.__monitoring_cpu_task is not None:
             self.__monitoring_cpu_task.stop()
+            self.__monitoring_cpu_task = None
         if self.__monitoring_memory_task is not None:
             self.__monitoring_memory_task.stop()
+            self.__monitoring_memory_task = None
         # if self.__monitoring_disks_task is not None:
         #     self.__monitoring_disks_task.stop()
 
@@ -427,11 +438,9 @@ class System(CleepModule):
         """
         Read cpu usage
         """
-        # send event if monitoring activated
-        if self._get_config_field("monitoring"):
-            self.monitoring_cpu_event.send(
-                params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid
-            )
+        self.monitoring_cpu_event.send(
+            params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid
+        )
 
     def _monitoring_memory_task(self):
         """
@@ -451,11 +460,9 @@ class System(CleepModule):
                 params={"percent": percent, "threshold": self.THRESHOLD_MEMORY}
             )
 
-        # send event if monitoring activated
-        if self._get_config_field("monitoring"):
-            self.monitoring_memory_event.send(
-                params=memory, device_id=self.__monitor_memory_uuid
-            )
+        self.monitoring_memory_event.send(
+            params=memory, device_id=self.__monitor_memory_uuid
+        )
 
     # TODO move to filesystem app
     # def _monitoring_disks_task(self):

@@ -9,6 +9,7 @@
 - Migrate drivers directive to config-drivers component
 - Add new config-code component
 - Update config to new Cleep components
+- Improve monitoring (show/hide widgets, disable tasks)
 
 ## [2.2.0] - 2023-03-09
 ### Fixed
