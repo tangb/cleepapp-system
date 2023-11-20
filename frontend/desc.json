@@ -25,7 +25,7 @@
             ]
         },
         "monitorcpu": {
-            "content": "<span class=\"md-display-1\">{{ device.cpu || 0 }}%</span>",
+            "content": "<span class=\"md-display-1\">{{ device.system || 0 }}%</span>",
             "footer": [
                 {
                     "type": "chart",
@@ -43,7 +43,7 @@
             ]
         },
         "monitormemory": {
-            "content": "<span class=\"md-display-1\">{{ device.memory || 0 }}%</span>",
+            "content": "<span class=\"md-display-1\">{{ device.availablehr || 0 }}</span>",
             "footer": [
                 {
                     "type": "chart",

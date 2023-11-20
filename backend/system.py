@@ -222,17 +222,17 @@ class System(CleepModule):
             })
 
         cpu_data = {
-            "cpu": self.get_cpu_usage()["system"],
             "hidden": not bool(self.__monitoring_cpu_task),
         }
+        cpu_data.update(self.get_cpu_usage())
         cpu_device = next((dev for dev in devices.values() if dev["type"] == "monitorcpu"), None)
         if cpu_device:
             cpu_device.update(cpu_data)
 
         mem_data = {
-            "memory": self.get_memory_usage()["available"],
-            "hidden": bool(self.__monitoring_memory_task),
+            "hidden": not bool(self.__monitoring_memory_task),
         }
+        mem_data.update(self.get_memory_usage())
         mem_device = next((dev for dev in devices.values() if dev["type"] == "monitormemory"), None)
         if mem_device:
             mem_device.update(mem_data)
