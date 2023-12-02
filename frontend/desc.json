@@ -15,12 +15,13 @@
                 {
                     "icon": "gauge",
                     "tooltip": "CPU usage",
-                    "label": "{{ device.cpu.system }}%"
+                    "attr": "cpu.system",
+                    "unit": "%"
                 },
                 {
                     "icon": "memory",
                     "tooltip": "Memory available",
-                    "label": "{{ device.memory.availablehr }}"
+                    "attr": "memory.availablehr"
                 }
             ]
         },
