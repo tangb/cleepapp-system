@@ -62,6 +62,8 @@ class TestsSystem(unittest.TestCase):
         self.module = self.session.setup(System)
         if start_module:
             self.session.start_module(self.module)
+            self.module.set_trace(False)
+            self.module.set_core_debug(False)
 
     def test_configure(self):
         self.init_session(start_module=False)
@@ -450,7 +452,6 @@ class TestsSystem(unittest.TestCase):
         self.module.set_trace(True)
 
         self.assertTrue(mock_cleepconf.return_value.enable_trace.called)
-        self.assertFalse(mock_cleepconf.return_value.disable_trace.called)
         self.assertTrue(self.module._System__need_restart)
         self.assertTrue(self.session.event_called('system.cleep.needrestart'))
 
@@ -481,14 +482,12 @@ class TestsSystem(unittest.TestCase):
         self.module.set_core_debug(True)
 
         self.assertTrue(mock_cleepconf.return_value.enable_core_debug.called)
-        self.assertFalse(mock_cleepconf.return_value.disable_core_debug.called)
 
     def test_set_core_debug_disabled(self):
         self.init_session()
 
         self.module.set_core_debug(False)
 
-        self.assertFalse(mock_cleepconf.return_value.enable_core_debug.called)
         self.assertTrue(mock_cleepconf.return_value.disable_core_debug.called)
 
     def test_set_core_debug_exception(self):

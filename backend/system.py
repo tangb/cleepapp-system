@@ -438,6 +438,9 @@ class System(CleepModule):
         """
         Read cpu usage
         """
+        if not self.get_monitoring():
+            return
+
         self.monitoring_cpu_event.send(
             params=self.get_cpu_usage(), device_id=self.__monitor_cpu_uuid
         )
@@ -447,6 +450,9 @@ class System(CleepModule):
         Read memory usage
         Send alert if threshold reached
         """
+        if not self.get_monitoring():
+            return
+
         memory = self.get_memory_usage()
 
         # detect memory leak
