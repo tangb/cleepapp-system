@@ -9,7 +9,7 @@ from backend.system import System
 from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo, NoResponse
 from cleep.libs.tests import session
 from cleep.libs.tests.common import get_log_level
-from mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock
 
 LOG_LEVEL = get_log_level()
 
@@ -59,7 +59,7 @@ class TestsSystem(unittest.TestCase):
         self.session.clean()
 
     def init_session(self, start_module=True):
-        self.module = self.session.setup(System)
+        self.module = self.session.setup(System, mock_on_start=False, mock_on_stop=False)
         if start_module:
             self.session.start_module(self.module)
             self.module.set_trace(False)

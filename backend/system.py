@@ -274,7 +274,9 @@ class System(CleepModule):
         if not self._set_config_field("monitoring", monitoring):
             raise CommandError("Unable to save configuration")
 
+        self.logger.info('plaf')
         if self._get_config_field("monitoring"):
+            self.logger.info('plouf')
             self.__start_monitoring_tasks()
         else:
             self.__stop_monitoring_tasks()
@@ -1024,6 +1026,22 @@ class System(CleepModule):
         except Exception:
             self.logger.exception("Error applying activity led tweak")
 
+    def get_led_path(self, paths):
+        """
+        Return first existing path in paths
+
+        Args:
+            paths (list): list of path to check
+
+        Returns:
+            str: found path or None if no path found
+        """
+        for path in paths:
+            if os.path.exists(path):
+                return path
+
+        return None
+
     def tweak_power_led(self, enable):
         """
         Tweak raspberry pi power led
@@ -1034,7 +1052,9 @@ class System(CleepModule):
         Args:
             enable (bool): True to turn on led
         """
-        if not os.path.exists("/sys/class/leds/led1"):
+        led_paths = ["/sys/class/leds/led1/brightness", "/sys/class/leds/PWR/brightness"]
+        led_path = self.get_led_path(led_paths)
+        if not led_path:
             self.logger.info("Power led not found on this device")
             return
 
@@ -1044,7 +1064,7 @@ class System(CleepModule):
         echo_value = on_value if enable else off_value
         self.logger.debug("Tweaking power led with value %s", echo_value)
         console = Console()
-        resp = console.command(f"echo {echo_value} > /sys/class/leds/led1/brightness")
+        resp = console.command(f"echo {echo_value} > {led_path}")
         if resp["returncode"] != 0:
             raise CommandError("Error tweaking power led")
 
@@ -1061,7 +1081,9 @@ class System(CleepModule):
         Args:
             enable (bool): True to turn on led
         """
-        if not os.path.exists("/sys/class/leds/led0"):
+        led_paths = ["/sys/class/leds/led0/brightness", "/sys/class/leds/ACT/brightness"]
+        led_path = self.get_led_path(led_paths)
+        if not led_path:
             self.logger.info("Activity led not found on this device")
             return
 
@@ -1073,13 +1095,15 @@ class System(CleepModule):
         console = Console()
 
         # update led status
-        resp = console.command(f"echo {echo_value} > /sys/class/leds/led0/brightness")
+        resp = console.command(f"echo {echo_value} > {led_path}")
         if resp["returncode"] != 0:
             raise CommandError("Error tweaking activity led")
 
         # restore default trigger mode to mmc0 activity if necessary
-        if enable:
-            resp = console.command("echo mmc0 > /sys/class/leds/led0/trigger")
+        led_paths = ["/sys/class/leds/led0/trigger", "/sys/class/leds/ACT/trigger"]
+        led_path = self.get_led_path(led_paths)
+        if enable and led_path:
+            resp = console.command(f"echo mmc0 > {led_path}")
             if resp["returncode"] != 0:
                 raise CommandError("Error tweaking activity led trigger mode")
 
