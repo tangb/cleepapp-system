@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from cleep.libs.tests import session
 import unittest
 import logging
 import sys
@@ -7,7 +8,6 @@ import os
 sys.path.append('../')
 from backend.system import System
 from cleep.exception import InvalidParameter, MissingParameter, CommandError, Unauthorized, CommandInfo, NoResponse
-from cleep.libs.tests import session
 from cleep.libs.tests.common import get_log_level
 from unittest.mock import Mock, patch, MagicMock
 
@@ -1141,6 +1141,6 @@ class TestsSystem(unittest.TestCase):
         self.assertFalse(mock_console.return_value.command.called)
 
 if __name__ == '__main__':
-    # coverage run --omit="*lib/python*/*","test_*" --concurrency=thread test_system.py; coverage report -m -i
+    # coverage run --include="**/backend/**/*.py" --concurrency=thread test_system.py; coverage report -m -i
     unittest.main()
     

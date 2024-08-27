@@ -411,15 +411,17 @@ class System(CleepModule):
         if not self._get_config_field("monitoring"):
             return
 
-        self.__monitoring_cpu_task = Task(
-            self.MONITORING_CPU_DELAY, self._monitoring_cpu_task, self.logger
+        self.__monitoring_cpu_task = self.task_factory.create_task(
+            self.MONITORING_CPU_DELAY, self._monitoring_cpu_task
         )
         self.__monitoring_cpu_task.start()
-        self.__monitoring_memory_task = Task(
-            self.MONITORING_MEMORY_DELAY, self._monitoring_memory_task, self.logger
+        self.__monitoring_memory_task = self.task_factory.create_task(
+            self.MONITORING_MEMORY_DELAY, self._monitoring_memory_task
         )
         self.__monitoring_memory_task.start()
-        # self.__monitoring_disks_task = Task(self.MONITORING_DISKS_DELAY, self._monitoring_disks_task, self.logger)
+        # self.__monitoring_disks_task = self.task_factory.create_task(
+        #    self.MONITORING_DISKS_DELAY, self._monitoring_disks_task
+        # )
         # self.__monitoring_disks_task.start()
 
     def __stop_monitoring_tasks(self):
