@@ -27,7 +27,7 @@ class System(CleepModule):
     """
 
     MODULE_AUTHOR = "Cleep"
-    MODULE_VERSION = "2.2.0"
+    MODULE_VERSION = "2.3.0"
     MODULE_CATEGORY = "APPLICATION"
     MODULE_DEPS = []
     MODULE_DESCRIPTION = "Helps controlling and monitoring the device"
@@ -1033,7 +1033,9 @@ class System(CleepModule):
         Return first existing path in paths
 
         Args:
-            paths (list): list of path to check
+            paths (list): list of path to check::
+
+                [ str, str, ... ]
 
         Returns:
             str: found path or None if no path found

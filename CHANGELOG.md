@@ -1,6 +1,6 @@
 # Changelog
 
-## [UNRELEASED]
+## [2.3.0] - 2024-09-30
 ### Fixed
 - Fix documentation
 
